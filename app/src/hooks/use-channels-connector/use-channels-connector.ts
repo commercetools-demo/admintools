@@ -56,7 +56,7 @@ export const useChannelsFetcher: TUseChannelsFetcher = ({
       sort: [`${tableSorting.value.key} ${tableSorting.value.order}`],
     },
     context: {
-      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND,
     },
   });
 

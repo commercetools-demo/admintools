@@ -34,37 +34,18 @@ type TFormErrors = {
 const validate = (values: TFormValues): TFormErrors => {
   const errors: TFormErrors = {};
 
-  // Company Name validation
-  if (!values.companyName || values.companyName.trim() === '') {
-    errors.companyName = { missing: true };
-  }
-
-  // First Name validation
-  if (!values.firstName || values.firstName.trim() === '') {
-    errors.firstName = { missing: true };
-  }
-
-  // Last Name validation
-  if (!values.lastName || values.lastName.trim() === '') {
-    errors.lastName = { missing: true };
-  }
-
-  // Email validation
-  if (!values.email || values.email.trim() === '') {
-    errors.email = { missing: true };
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+  // Email validation - only validate format if email is provided
+  if (values.email && values.email.trim() !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
     errors.email = { invalid: true };
   }
 
-  // Phone Number validation (optional but if provided, should be valid)
+  // Phone Number validation - only validate format if phone is provided
   if (values.phoneNumber && values.phoneNumber.trim() !== '' && !/^\+?[\d\s\-\(\)]+$/.test(values.phoneNumber)) {
     errors.phoneNumber = { invalid: true };
   }
 
-  // Password validation
-  if (!values.password || values.password.trim() === '') {
-    errors.password = { missing: true };
-  } else if (values.password.length < 8) {
+  // Password validation - only validate length if password is provided
+  if (values.password && values.password.trim() !== '' && values.password.length < 8) {
     errors.password = { tooShort: true };
   }
 
@@ -143,7 +124,6 @@ const OnboardCustomer: React.FC = () => {
                       title={intl.formatMessage(messages.companyName)}
                       errors={formikProps.errors.companyName as unknown as TFieldErrors}
                       touched={formikProps.touched.companyName}
-                      isRequired
                       horizontalConstraint={16}
                     />
                     
@@ -155,7 +135,6 @@ const OnboardCustomer: React.FC = () => {
                       title={intl.formatMessage(messages.firstName)}
                       errors={formikProps.errors.firstName as unknown as TFieldErrors}
                       touched={formikProps.touched.firstName}
-                      isRequired
                       horizontalConstraint={16}
                     />
                     
@@ -167,7 +146,6 @@ const OnboardCustomer: React.FC = () => {
                       title={intl.formatMessage(messages.lastName)}
                       errors={formikProps.errors.lastName as unknown as TFieldErrors}
                       touched={formikProps.touched.lastName}
-                      isRequired
                       horizontalConstraint={16}
                     />
                     
@@ -180,7 +158,6 @@ const OnboardCustomer: React.FC = () => {
                       errors={formikProps.errors.email as unknown as TFieldErrors}
                       touched={formikProps.touched.email}
                       renderError={renderError}
-                      isRequired
                       horizontalConstraint={16}
                     />
                     
@@ -205,7 +182,6 @@ const OnboardCustomer: React.FC = () => {
                       errors={formikProps.errors.password as unknown as TFieldErrors}
                       touched={formikProps.touched.password}
                       renderError={renderError}
-                      isRequired
                       horizontalConstraint={16}
                       autoComplete="new-password"
                     />
