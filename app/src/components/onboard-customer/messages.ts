@@ -5,6 +5,10 @@ export default defineMessages({
     id: 'OnboardCustomer.title',
     defaultMessage: 'Onboard Customer',
   },
+  subtitle: {
+    id: 'OnboardCustomer.subtitle',
+    defaultMessage: 'Add a new customer to your system',
+  },
   backToAdmin: {
     id: 'OnboardCustomer.backToAdmin',
     defaultMessage: 'Back to Dashboard',
@@ -35,6 +39,14 @@ export default defineMessages({
   },
   submit: {
     id: 'OnboardCustomer.submit',
-    defaultMessage: 'Submit',
+    defaultMessage: 'Create Customer',
+  },
+  errorInvalid: {
+    id: 'OnboardCustomer.error.invalid',
+    defaultMessage: 'This field is invalid',
+  },
+  errorTooShort: {
+    id: 'OnboardCustomer.error.tooShort',
+    defaultMessage: 'Password must be at least 8 characters',
   },
 }); 

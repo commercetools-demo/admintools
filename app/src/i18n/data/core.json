@@ -2,6 +2,7 @@
   "AdminDashboard.title": "Admin Dashboard",
   "AdminDashboard.onboardCustomer": "Onboard Customer",
   "OnboardCustomer.title": "Onboard Customer",
+  "OnboardCustomer.subtitle": "Add a new customer to your organization",
   "OnboardCustomer.backToAdmin": "Back to Dashboard",
   "OnboardCustomer.companyName": "Company Name",
   "OnboardCustomer.firstName": "First Name",
@@ -9,5 +10,7 @@
   "OnboardCustomer.email": "Email",
   "OnboardCustomer.phoneNumber": "Phone Number",
   "OnboardCustomer.password": "Password",
-  "OnboardCustomer.submit": "Submit"
+  "OnboardCustomer.submit": "Create Customer",
+  "OnboardCustomer.error.invalid": "This field is invalid",
+  "OnboardCustomer.error.tooShort": "Password must be at least 8 characters"
 }

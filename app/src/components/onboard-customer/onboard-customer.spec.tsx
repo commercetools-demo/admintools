@@ -15,6 +15,7 @@ describe('OnboardCustomer', () => {
         locale="en" 
         messages={{
           "OnboardCustomer.title": "Onboard Customer",
+          "OnboardCustomer.subtitle": "Add a new customer to your organization",
           "OnboardCustomer.backToAdmin": "Back to Dashboard",
           "OnboardCustomer.companyName": "Company Name",
           "OnboardCustomer.firstName": "First Name",
@@ -31,11 +32,17 @@ describe('OnboardCustomer', () => {
       </IntlProvider>
     );
 
-  it('should render the form with all input fields', () => {
+  it('should render the header with title and subtitle', () => {
     renderComponent();
     
     expect(screen.getByText('Onboard Customer')).toBeInTheDocument();
+    expect(screen.getByText('Add a new customer to your organization')).toBeInTheDocument();
     expect(screen.getByText('Back to Dashboard')).toBeInTheDocument();
+  });
+
+  it('should render the form with all input fields', () => {
+    renderComponent();
+    
     expect(screen.getByLabelText(/Company Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Last Name/i)).toBeInTheDocument();
