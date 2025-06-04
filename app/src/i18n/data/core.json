@@ -1,0 +1,13 @@
+{
+  "AdminDashboard.title": "Admin Dashboard",
+  "AdminDashboard.onboardCustomer": "Onboard Customer",
+  "OnboardCustomer.title": "Onboard Customer",
+  "OnboardCustomer.backToAdmin": "Back to Dashboard",
+  "OnboardCustomer.companyName": "Company Name",
+  "OnboardCustomer.firstName": "First Name",
+  "OnboardCustomer.lastName": "Last Name",
+  "OnboardCustomer.email": "Email",
+  "OnboardCustomer.phoneNumber": "Phone Number",
+  "OnboardCustomer.password": "Password",
+  "OnboardCustomer.submit": "Submit"
+}

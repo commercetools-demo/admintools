@@ -1,0 +1,47 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-l);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-l);
+}
+
+.title {
+  flex-grow: 1;
+}
+
+.backButton {
+  margin-right: var(--spacing-m);
+}
+
+.formSection {
+  background-color: var(--color-surface);
+  padding: var(--spacing-l);
+  border-radius: var(--border-radius-6);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: var(--spacing-l);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-m);
+}
+
+.fullWidth {
+  grid-column: span 2;
+}
+
+.buttonsContainer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--spacing-l);
+}
+
+.submitButton {
+  min-width: 150px;
+} 
