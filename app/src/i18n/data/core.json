@@ -9,8 +9,9 @@
   "OnboardCustomer.lastName": "Last Name",
   "OnboardCustomer.email": "Email",
   "OnboardCustomer.phoneNumber": "Phone Number",
-  "OnboardCustomer.password": "Password",
   "OnboardCustomer.submit": "Create Customer",
+  "OnboardCustomer.error.missing": "This field is required",
   "OnboardCustomer.error.invalid": "This field is invalid",
-  "OnboardCustomer.error.tooShort": "Password must be at least 8 characters"
+  "OnboardCustomer.success": "Customer {name} has been successfully onboarded!",
+  "OnboardCustomer.error.general": "Failed to onboard customer. Please try again."
 }

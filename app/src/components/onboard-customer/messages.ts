@@ -33,20 +33,24 @@ export default defineMessages({
     id: 'OnboardCustomer.phoneNumber',
     defaultMessage: 'Phone Number',
   },
-  password: {
-    id: 'OnboardCustomer.password',
-    defaultMessage: 'Password',
-  },
   submit: {
     id: 'OnboardCustomer.submit',
     defaultMessage: 'Create Customer',
+  },
+  errorMissing: {
+    id: 'OnboardCustomer.error.missing',
+    defaultMessage: 'This field is required',
   },
   errorInvalid: {
     id: 'OnboardCustomer.error.invalid',
     defaultMessage: 'This field is invalid',
   },
-  errorTooShort: {
-    id: 'OnboardCustomer.error.tooShort',
-    defaultMessage: 'Password must be at least 8 characters',
+  success: {
+    id: 'OnboardCustomer.success',
+    defaultMessage: 'Customer {name} has been successfully onboarded!',
+  },
+  errorGeneral: {
+    id: 'OnboardCustomer.error.general',
+    defaultMessage: 'Failed to onboard customer. Please try again.',
   },
 }); 

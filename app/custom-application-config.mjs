@@ -9,16 +9,42 @@ const config = {
   cloudIdentifier: '${env:CLOUD_IDENTIFIER}',
   env: {
     production: {
+<<<<<<< Updated upstream
       applicationId: '${env:CUSTOM_APPLICATION_ID}',
       url: '${env:APPLICATION_URL}',
     },
     development: {
       initialProjectKey: '${env:INITIAL_PROJECT_KEY}',
     },
+=======
+      applicationId: 'TODO',
+      url: 'https://your_app_hostname.com',
+    },  
+  },
+  additionalEnv: {
+    'CUSTOMER_GROUP': 'sellers',
+    'ASSOCIATE_ROLE': 'admin',
+>>>>>>> Stashed changes
   },
   oAuthScopes: {
-    view: ['view_products'],
-    manage: ['manage_products'],
+    view: [
+      'view_products', 
+      'view_customers',
+      'view_stores',
+      'view_customer_groups',
+      'view_business_units',
+      'view_associate_roles',
+      'view_key_value_documents'
+    ],
+    manage: [
+      'manage_products', 
+      'manage_customers', 
+      'manage_stores', 
+      'manage_customer_groups', 
+      'manage_business_units',
+      'manage_associate_roles',
+      'manage_key_value_documents'
+    ]
   },
   icon: '${path:@commercetools-frontend/assets/application-icons/rocket.svg}',
   mainMenuLink: {
