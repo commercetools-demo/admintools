@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { ChatBubble } from './components/chat-bubble';
-import { useHistory } from 'react-router';
 import IconButton from '@commercetools-uikit/icon-button';
 import {
   SpeechBubbleIcon,
@@ -11,106 +10,63 @@ import {
   SparklesIcon,
 } from '@commercetools-uikit/icons';
 import styles from './index.module.css';
-import * as jose from 'jose';
 import { useChat } from '@ai-sdk/react';
-import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
+import Markdown from 'react-markdown';
+import { useHistory } from 'react-router';
 
 interface AiAssistantProps {
+  deployedUrl: string;
   minimized?: boolean;
   className?: string;
-}
-
-const url =
-  'https://service-aaldnxp0z4lu69ssnnrhwg95.us-central1.gcp.2.sandbox.commercetools.app/chat?isAdmin=true';
-
-async function signWithJose(jwtKey: string) {
-  const payload = {
-    isAdmin: 'true',
-  };
-
-  // Create a secret key (in production, generate and store this securely)
-  const secretKey = new TextEncoder().encode(jwtKey);
-
-  // Sign the payload
-  const jwt = await new jose.SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('1h')
-    .setIssuedAt()
-    .sign(secretKey);
-
-  return jwt;
+  token: string;
 }
 
 export const AiAssistant = ({
+  deployedUrl,
   minimized = false,
   className = '',
+  token,
 }: AiAssistantProps) => {
   const [isOpen, setIsOpen] = useState(!minimized);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const router = useHistory();
-  const [token, setToken] = useState<string>('');
-  const { environment }: { environment: { JWT_TOKEN: string } } = useApplicationContext();
-
-  // Generate token on component mount
-  useEffect(() => {
-    const generateToken = async () => {
-      try {
-        const generatedToken = await signWithJose(environment?.JWT_TOKEN);
-        setToken(generatedToken);
-      } catch (error) {
-        console.error('Failed to generate token:', error);
-      }
-    };
-
-    generateToken();
-  }, []);
 
   const { messages, input, handleInputChange, handleSubmit, status } = useChat({
-    generateId: () => {
-      return new Date().toISOString();
-    },
-
-    api: `${url}`,
-    headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-        }
-      : {},
-
     onToolCall: ({ toolCall }) => {
-      switch (toolCall.toolName) {
-        case 'navigateToProduct':
-          const { sku } = toolCall.args as { sku?: string };
-          if (sku) {
-            router.push(`/slug/p/${encodeURIComponent(sku)}`);
-            return { navigatedTo: `/slug/p/${encodeURIComponent(sku)}` };
-          }
-          break;
-        case 'navigateToProductList':
-          const { categoryKey } = toolCall.args as { categoryKey?: string };
-          if (categoryKey) {
-            router.push(`/${encodeURIComponent(categoryKey)}`);
-          }
-          break;
-        case 'navigateToSearchResults':
-          const { searchQuery } = toolCall.args as { searchQuery?: string };
-          if (searchQuery) {
-            router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
-          }
-          break;
-        case 'navigateToCart':
-          router.push('/cart');
-          break;
-        case 'navigateToCheckout':
-          router.push('/checkout');
-          break;
+      switch (toolCall.args) {
+        case 'Orders':
+          router.push(`/orders`);
+          return { navigatedTo: `/orders` };
+        case 'Customers':
+          router.push(`/customers`);
+          return { navigatedTo: `/customers` };
+        case 'Products':
+          router.push(`/products`);
+          return { navigatedTo: `/products` };
+        case 'Settings':
+          router.push(`/configuration`);
+          return { navigatedTo: `/configuration` };
+        case 'Prices':
+          router.push(`/prices`);
+          return { navigatedTo: `/prices` };
+        case 'Promotions':
+          router.push(`/promotions`);
+          return { navigatedTo: `/promotions` };
+        case 'CMS':
+          router.push(`/content`);
+          return { navigatedTo: `/content` };
+        case 'Reports':
+          router.push(`/reports`);
+          return { navigatedTo: `/reports` };
         default:
-          break;
+          return { navigatedTo: `/` };
       }
     },
+    api: `${deployedUrl}`,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
-
-  console.log('status', status);
 
   // Scroll to bottom of chat container when messages change
   useEffect(() => {
@@ -166,7 +122,7 @@ export const AiAssistant = ({
                   if (part.type === 'text') {
                     return (
                       <div key={partIndex} className={styles.messageBubble}>
-                        {part.text}
+                        <Markdown>{part.text}</Markdown>
                       </div>
                     );
                   }

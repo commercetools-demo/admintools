@@ -1,4 +1,4 @@
-import { createRoot } from "react-dom/client";
+import { createRoot } from 'react-dom/client';
 /// <reference types="@commercetools-frontend/application-config/client" />
 
 import EntryPoint from './components/entry-point';

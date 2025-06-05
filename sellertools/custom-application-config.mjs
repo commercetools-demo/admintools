@@ -1,4 +1,4 @@
-import { PERMISSIONS, entryPointUriPath } from './src/constants';
+import { PERMISSIONS } from './src/constants';
 
 /**
  * @type {import('@commercetools-frontend/application-config').ConfigOptionsForCustomApplication}
@@ -21,6 +21,12 @@ const config = {
     SELLER_CUSTOMERGROUP_KEY: '${env:SELLER_CUSTOMERGROUP_KEY}',
     JWT_TOKEN: '${env:JWT_TOKEN}',
   },
+  headers: {
+    csp: {
+      'script-src': ['*.commercetools.app', 'localhost:8080'],
+      "connect-src": ['*.commercetools.app', 'localhost:8080'],
+    }
+  },
   oAuthScopes: {
     view: [
       'view_products', 
@@ -29,7 +35,8 @@ const config = {
       'view_orders', 
       'view_product_selections',
       'view_cart_discounts',
-      'view_business_units'
+      'view_business_units',
+      'view_key_value_documents'
     ],
     manage: [
       'manage_products', 

@@ -91,6 +91,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-intl": "^7.1.4",
+    "react-markdown": "^10.1.0",
     "react-redux": "7.2.9",
     "react-router-dom": "5.3.4",
     "recharts": "^2.15.3",
