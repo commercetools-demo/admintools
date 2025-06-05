@@ -9,22 +9,16 @@ const config = {
   cloudIdentifier: '${env:CLOUD_IDENTIFIER}',
   env: {
     production: {
-<<<<<<< Updated upstream
       applicationId: '${env:CUSTOM_APPLICATION_ID}',
       url: '${env:APPLICATION_URL}',
     },
     development: {
       initialProjectKey: '${env:INITIAL_PROJECT_KEY}',
     },
-=======
-      applicationId: 'TODO',
-      url: 'https://your_app_hostname.com',
-    },  
   },
   additionalEnv: {
-    'CUSTOMER_GROUP': 'sellers',
-    'ASSOCIATE_ROLE': 'admin',
->>>>>>> Stashed changes
+    'CUSTOMER_GROUP': '${env:CUSTOMER_GROUP}',
+    'ASSOCIATE_ROLE': '${env:ASSOCIATE_ROLE}',
   },
   oAuthScopes: {
     view: [
