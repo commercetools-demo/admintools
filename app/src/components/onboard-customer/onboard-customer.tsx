@@ -14,6 +14,7 @@ import useBusinessUnitManagement from '../../hooks/use-business-unit-management'
 import useStoreManagement from '../../hooks/use-store-management';
 import messages from './messages';
 import styles from './onboard-customer.module.css';
+import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
 
 type TFormValues = {
   companyName: string;
@@ -72,6 +73,8 @@ const OnboardCustomer: React.FC = () => {
   const customerManagement = useCustomerManagement();
   const businessUnitManagement = useBusinessUnitManagement();
   const storeManagement = useStoreManagement();
+
+  const { environment }: { environment: { CUSTOMER_GROUP: string, ASSOCIATE_ROLE: string } } = useApplicationContext();
   
   // Loading state - true if any of the hooks are loading
   const isLoading = customerManagement.loading || businessUnitManagement.loading || storeManagement.loading;
@@ -96,20 +99,8 @@ const OnboardCustomer: React.FC = () => {
 
       // Step 1: Create the customer with ExternalAuth and customer group
       console.log('👤 Step 1: Creating customer...');
-      const customerGroupKey = process.env.CUSTOMER_GROUP;
-      
-      // Debug: Log all environment variables to see what's available
-      console.log('🔍 All environment variables:', process.env);
-      console.log('🔍 Specific env vars:', {
-        CUSTOMER_GROUP: process.env.CUSTOMER_GROUP,
-        ASSOCIATE_ROLE: process.env.ASSOCIATE_ROLE,
-        NODE_ENV: process.env.NODE_ENV
-      });
-      
-      console.log('🏷️ Environment variables:', {
-        customerGroup: customerGroupKey,
-        associateRole: process.env.ASSOCIATE_ROLE
-      });
+      const customerGroupKey = environment?.CUSTOMER_GROUP;
+    
 
       const customer = await customerManagement.createCustomer({
         email: values.email,
@@ -228,7 +219,7 @@ const OnboardCustomer: React.FC = () => {
 
       // Step 4: Create business unit with associate and store references
       console.log('🏢 Step 4: Creating business unit with associate and store...');
-      const associateRoleKey = process.env.ASSOCIATE_ROLE;
+      const associateRoleKey = environment?.ASSOCIATE_ROLE;
       console.log('👔 Associate role from env:', associateRoleKey);
       
       if (!associateRoleKey) {
