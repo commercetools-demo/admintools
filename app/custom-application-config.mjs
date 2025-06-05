@@ -1,19 +1,19 @@
-import { PERMISSIONS, entryPointUriPath } from './src/constants';
+import { PERMISSIONS } from './src/constants';
 
 /**
  * @type {import('@commercetools-frontend/application-config').ConfigOptionsForCustomApplication}
  */
 const config = {
   name: 'Admintools',
-  entryPointUriPath,
-  cloudIdentifier: 'gcp-us',
+  entryPointUriPath: '${env:ENTRY_POINT_URI_PATH}',
+  cloudIdentifier: '${env:CLOUD_IDENTIFIER}',
   env: {
-    development: {
-      initialProjectKey: 'b2b2c-store',
-    },
     production: {
-      applicationId: 'TODO',
-      url: 'https://your_app_hostname.com',
+      applicationId: '${env:CUSTOM_APPLICATION_ID}',
+      url: '${env:APPLICATION_URL}',
+    },
+    development: {
+      initialProjectKey: '${env:INITIAL_PROJECT_KEY}',
     },
   },
   oAuthScopes: {
@@ -22,18 +22,10 @@ const config = {
   },
   icon: '${path:@commercetools-frontend/assets/application-icons/rocket.svg}',
   mainMenuLink: {
-    defaultLabel: 'Template starter',
+    defaultLabel: 'Admintools',
     labelAllLocales: [],
     permissions: [PERMISSIONS.View],
-  },
-  submenuLinks: [
-    {
-      uriPath: 'channels',
-      defaultLabel: 'Channels',
-      labelAllLocales: [],
-      permissions: [PERMISSIONS.View],
-    },
-  ],
+  }
 };
 
 export default config;

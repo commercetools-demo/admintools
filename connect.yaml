@@ -1,0 +1,36 @@
+deployAs:
+  - name: app
+    applicationType: merchant-center-custom-application
+    configuration:
+      standardConfiguration:
+        - key: CUSTOM_APPLICATION_ID
+          description: The Custom Application ID
+          required: true
+        - key: ENTRY_POINT_URI_PATH
+          description: The Application entry point URI path
+          required: true
+          default: 'admintools'
+  - name: sellertools
+    applicationType: merchant-center-custom-application
+    configuration:
+      standardConfiguration:
+        - key: CUSTOM_APPLICATION_ID
+          description: Sellertools Custom Application ID
+          required: true
+        - key: ENTRY_POINT_URI_PATH
+          description: Sellertools Application entry point URI path
+          required: true
+          default: 'sellertools'
+        - key: CMS_API_URL
+          description: CMS API URL
+          required: true
+        - key: SELLER_CUSTOMERGROUP_KEY
+          description: Seller Customer Group Key
+          required: true
+inheritAs:
+  configuration:
+    securedConfiguration:
+      - key: CLOUD_IDENTIFIER
+        description: one of the following gcp-us, gcp-eu, aws-us, aws-eu
+        required: true
+        default: 'gcp-us'
