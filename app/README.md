@@ -4,46 +4,42 @@
   </a>
 </p>
 
-# admintools - Seller Onboarding System
+# admintools
 
-This application provides a streamlined way to onboard new business sellers into your commercetools platform. When you click the "Onboard Seller" card, the system automatically creates all the necessary resources and relationships for a complete B2B setup.
+This application provides a streamlined way to manage sellertools. In its current state, Business Users can easily onboard new Sellers.
 
 ## 🚀 Seller Onboarding Flow
 
 When you fill out the onboarding form and submit it, here's exactly what happens behind the scenes:
 
 ### Step 1: 👤 Create Seller Account
-- **What it does**: Creates a new seller account with the provided information
-- **Details**: Sets up the seller with external authentication and assigns them to the appropriate customer group
-- **Includes**: Automatic email verification token creation and confirmation
-- **Why it matters**: This is the foundation - every business needs a verified seller account to access your platform
+- **What it does**: Creates a new Seller account with the provided information
+- **Details**: Sets up the Seller and assigns them to the appropriate customer group
+- **Why it matters**: This is the foundation - every business needs a verified Seller account to access the sellertools platform
 
 ### Step 2: 📺 Create Distribution & Supply Channel
-- **What it does**: Sets up a unified channel for both inventory management and product distribution
+- **What it does**: Sets up a channel for both inventory management and product distribution
 - **Details**: Creates a single channel with dual roles: "InventorySupply" and "ProductDistribution"
-- **Why it matters**: This channel controls both how products are distributed and how inventory is managed for the business
+- **Why it matters**: This channel configuration allows Sellers to track their own inventory and create their own prices
 
-### Step 3: 🏪 Create Business Store
-- **What it does**: Creates a dedicated store for the business seller
+### Step 3: 🏪 Create Store
+- **What it does**: Creates a dedicated store for the Seller
 - **Details**: 
-  - Links the store to the channel as both a distribution channel AND supply channel
-  - Enables full inventory and product management capabilities
-  - Provides isolated business environment
-- **Why it matters**: Each business gets their own store with complete product and inventory control
+  - Enables segmentation of data per Seller. Each seller will only have access to their Orders, Customers, Product Selection, etc.
+  - Previously created channel is assigned to Store
+- **Why it matters**: Each business gets their own store with control over their Orders, Customers, Product Selection, and more!
 
 ### Step 4: 📦 Create & Assign Product Selection
 - **What it does**: Creates a product catalog selection and properly assigns it to the store
 - **Details**: 
-  - Creates an "Individual" type product selection with the company name
-  - Uses key format like "business-x-selection"
-  - Uses `setProductSelections` action to properly assign to the store
-  - Ensures the product selection is active and linked
-- **Why it matters**: Product selections control which products are available to each business seller
+  - Creates an "Inclusive" Product Selection for the Seller
+  - Ensures the product selection is active and linked to the correct Store
+- **Why it matters**: Product selections control which products can be sold by each Seller
 
 ### Step 5: 🏢 Create Business Unit
 - **What it does**: Creates the main business entity that ties everything together
 - **Details**: 
-  - Links the seller as an admin associate with proper role assignments
+  - Links the Seller as an admin associate with proper role assignments
   - Assigns the store to the business unit for management
   - Sets up proper permissions and business relationships
   - Includes address information if phone number is provided
@@ -51,7 +47,7 @@ When you fill out the onboarding form and submit it, here's exactly what happens
 
 ## 🔗 How Everything Connects
 
-After the onboarding process completes, here's how all the pieces work together:
+Here's how all the pieces work together:
 
 ```
 👤 Seller Account (Verified)
@@ -122,11 +118,3 @@ The system provides clean, emoji-enhanced logging:
 - **Form Validation**: Ensures data quality before submission
 - **Error Handling**: Graceful handling with user-friendly notifications
 - **Comprehensive Logging**: Clean, informative console output for debugging
-
-# Installing the template
-
-Read the [Getting started](https://docs.commercetools.com/merchant-center-customizations/custom-applications) documentation for more information.
-
-# Developing the Custom Application
-
-Learn more about [developing a Custom Application](https://docs.commercetools.com/merchant-center-customizations/development) and [how to use the CLI](https://docs.commercetools.com/merchant-center-customizations/api-reference/cli).
