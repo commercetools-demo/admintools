@@ -2,7 +2,6 @@
   <a href="https://commercetools.com/">
     <img alt="commercetools logo" src="https://unpkg.com/@commercetools-frontend/assets/logos/commercetools_primary-logo_horizontal_RGB.png">
   </a>
-  <b>admintools</b>
 </p>
 
 # admintools - Seller Onboarding System
