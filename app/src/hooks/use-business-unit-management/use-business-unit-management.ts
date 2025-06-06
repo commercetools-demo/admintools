@@ -15,6 +15,20 @@ const CREATE_BUSINESS_UNIT = gql`
       unitType
       contactEmail
       createdAt
+      addresses {
+        id
+        key
+        country
+        firstName
+        lastName
+        company
+        phone
+        streetName
+        streetNumber
+        city
+        postalCode
+        state
+      }
       associates {
         customer {
           id
@@ -32,7 +46,7 @@ const CREATE_BUSINESS_UNIT = gql`
       stores {
         id
         key
-        name
+        name(locale: "en-US")
       }
     }
   }
@@ -74,13 +88,17 @@ export interface BusinessUnitDraft {
     id: string;
   };
   addresses?: Array<{
-    streetName: string;
-    streetNumber?: string;
-    city: string;
-    postalCode: string;
+    key?: string;
     country: string;
-    state?: string;
+    firstName?: string;
+    lastName?: string;
+    company?: string;
     phone?: string;
+    streetName?: string;
+    streetNumber?: string;
+    city?: string;
+    postalCode?: string;
+    state?: string;
   }>;
   associates?: Array<{
     customer: {
@@ -110,6 +128,20 @@ export interface BusinessUnit {
   unitType: 'Company' | 'Division';
   contactEmail?: string;
   createdAt: string;
+  addresses?: Array<{
+    id: string;
+    key?: string;
+    country: string;
+    firstName?: string;
+    lastName?: string;
+    company?: string;
+    phone?: string;
+    streetName?: string;
+    streetNumber?: string;
+    city?: string;
+    postalCode?: string;
+    state?: string;
+  }>;
   associates?: Array<{
     customer: {
       id: string;

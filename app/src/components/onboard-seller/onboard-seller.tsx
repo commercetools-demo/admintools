@@ -13,7 +13,7 @@ import useCustomerManagement from '../../hooks/use-customer-management';
 import useBusinessUnitManagement from '../../hooks/use-business-unit-management';
 import useStoreManagement from '../../hooks/use-store-management';
 import messages from './messages';
-import styles from './onboard-customer.module.css';
+import styles from './onboard-seller.module.css';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
 
 type TFormValues = {
@@ -64,7 +64,7 @@ const validate = (values: TFormValues): TFormErrors => {
   return errors;
 };
 
-const OnboardCustomer: React.FC = () => {
+const OnboardSeller: React.FC = () => {
   const intl = useIntl();
   const history = useHistory();
   const showNotification = useShowNotification();
@@ -85,20 +85,16 @@ const OnboardCustomer: React.FC = () => {
 
   const handleSubmit = async (values: TFormValues) => {
     try {
-      console.log('🚀 Starting customer onboarding process...');
-      console.log('📝 Form values:', values);
+      console.log('🚀 Starting seller onboarding process...');
       
       // Transform company name to key format (lowercase, spaces to dashes)
       const companyKey = values.companyName.toLowerCase().replace(/\s+/g, '-');
       const companyName = values.companyName; // Keep original for display
       
-      console.log('🔄 Company name transformation:', {
-        original: companyName,
-        key: companyKey
-      });
+      console.log(`📝 Onboarding: ${companyName} (${values.firstName} ${values.lastName})`);
 
       // Step 1: Create the customer with ExternalAuth and customer group
-      console.log('👤 Step 1: Creating customer...');
+      console.log('👤 Step 1: Creating seller account...');
       const customerGroupKey = environment?.CUSTOMER_GROUP;
     
 
@@ -118,43 +114,21 @@ const OnboardCustomer: React.FC = () => {
         throw new Error('Failed to create customer');
       }
 
-      console.log('✅ Customer created successfully:', {
-        id: customer.id,
-        email: customer.email,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        companyName: customer.companyName,
-        authenticationMode: 'ExternalAuth',
-        customerGroup: customer.customerGroup?.key || 'none'
-      });
-
       // Step 1.1: Create email verification token
-      console.log('📧 Step 1.1: Creating email verification token...');
       const verificationToken = await customerManagement.createEmailVerificationToken(customer.id, 10);
 
       if (!verificationToken) {
         throw new Error('Failed to create email verification token');
       }
 
-      console.log('✅ Email verification token created:', {
-        customerId: customer.id,
-        tokenLength: verificationToken.length,
-        ttlMinutes: 10
-      });
-
       // Step 1.2: Confirm email with the token
-      console.log('✉️ Step 1.2: Confirming customer email...');
       const verifiedCustomer = await customerManagement.confirmEmail(verificationToken);
 
       if (!verifiedCustomer) {
         throw new Error('Failed to verify customer email');
       }
 
-      console.log('✅ Customer email verified:', {
-        id: verifiedCustomer.id,
-        email: verifiedCustomer.email,
-        isEmailVerified: verifiedCustomer.isEmailVerified
-      });
+      console.log('✅ Seller account created and verified');
 
       // Step 2: Create a channel for inventory and product distribution
       console.log('📺 Step 2: Creating channel...');
@@ -180,13 +154,9 @@ const OnboardCustomer: React.FC = () => {
         throw new Error('Failed to create channel');
       }
 
-      console.log('✅ Channel created successfully:', {
-        id: channel.id,
-        key: channel.key,
-        roles: channel.roles,
-      });
+      console.log('✅ Channel created with both supply and distribution roles');
 
-      // Step 3: Create a store that references the channel
+      // Step 3: Create a store that references the channel for both distribution and supply
       console.log('🏪 Step 3: Creating store...');
       const storeKey = `${companyKey}-store`;
       const store = await storeManagement.createStore({
@@ -201,26 +171,41 @@ const OnboardCustomer: React.FC = () => {
           typeId: 'channel',
           key: channelKey,
         }],
+        supplyChannels: [{
+          typeId: 'channel',
+          key: channelKey,
+        }],
       });
 
       if (!store) {
         throw new Error('Failed to create store');
       }
 
-      console.log('✅ Store created successfully:', {
-        id: store.id,
-        key: store.key,
-        name: store.name,
-        distributionChannels: store.distributionChannels?.map((dc: any) => ({
-          id: dc.id,
-          key: dc.key,
-        })),
-      });
+      console.log('✅ Store created with distribution and supply channels');
 
-      // Step 4: Create business unit with associate and store references
-      console.log('🏢 Step 4: Creating business unit with associate and store...');
+      // Step 4: Create product selection and assign to store
+      console.log('📦 Step 4: Creating product selection...');
+      const productSelectionKey = `${companyKey}-selection`;
+      const productSelection = await storeManagement.createProductSelection({
+        key: productSelectionKey,
+        name: [
+          {
+            locale: 'en-US',
+            value: `${companyName} Selection`,
+          },
+        ],
+        mode: 'Individual',
+      }, storeKey);
+
+      if (!productSelection) {
+        throw new Error('Failed to create product selection');
+      }
+
+      console.log('✅ Product selection created and assigned to store');
+
+      // Step 5: Create business unit with associate and store references
+      console.log('🏢 Step 5: Creating business unit...');
       const associateRoleKey = environment?.ASSOCIATE_ROLE;
-      console.log('👔 Associate role from env:', associateRoleKey);
       
       if (!associateRoleKey) {
         throw new Error('ASSOCIATE_ROLE environment variable is not set');
@@ -231,6 +216,14 @@ const OnboardCustomer: React.FC = () => {
         name: companyName,
         unitType: 'Company',
         contactEmail: values.email,
+        addresses: values.phoneNumber ? [{
+          key: `${companyKey}-address`,
+          country: 'US',
+          firstName: values.firstName,
+          lastName: values.lastName,
+          company: companyName,
+          phone: values.phoneNumber,
+        }] : undefined,
         associates: [{
           customer: {
             typeId: 'customer',
@@ -254,65 +247,24 @@ const OnboardCustomer: React.FC = () => {
         throw new Error('Failed to create business unit');
       }
 
-      console.log('✅ Business unit created successfully:', {
-        id: businessUnit.id,
-        key: businessUnit.key,
-        name: businessUnit.name,
-        unitType: businessUnit.unitType,
-        associates: businessUnit.associates?.map((a: any) => ({
-          customerId: a.customer.id,
-          email: a.customer.email,
-          roles: a.associateRoleAssignments.map((r: any) => r.associateRole.key),
-        })),
-        stores: businessUnit.stores?.map((s: any) => ({
-          id: s.id,
-          key: s.key,
-          name: s.name,
-        })),
-      });
+      console.log('✅ Business unit created with store assignment');
 
-      // 📊 Final Summary
-      console.log('🎉 === ONBOARD CUSTOMER COMPLETE ===');
-      console.log('📊 Summary of created resources:');
-      console.log('👤 Customer:', {
-        id: customer.id,
-        email: customer.email,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        customerGroup: customerGroupKey,
-        emailVerified: true
-      });
-      console.log('🏢 Business Unit:', {
-        id: businessUnit.id,
-        key: businessUnit.key,
-        name: businessUnit.name,
-        unitType: businessUnit.unitType,
-        associates: businessUnit.associates?.length || 0,
-        stores: businessUnit.stores?.length || 0
-      });
-      console.log('📺 Channel:', {
-        id: channel.id,
-        key: channel.key,
-        roles: channel.roles
-      });
-      console.log('🏪 Store:', {
-        id: store.id,
-        key: store.key,
-        name: store.name,
-        distributionChannels: store.distributionChannels?.length || 0
-      });
-      console.log('🔗 Relationships:');
-      console.log('  • Customer → Business Unit (as admin associate)');
-      console.log('  • Store → Business Unit (store assignment)');
-      console.log('  • Store → Channel (distribution channel)');
-      console.log('✅ All resources created and linked successfully!');
+      // 🎉 Final Summary
+      console.log('🎉 === ONBOARD SELLER COMPLETE ===');
+      console.log('📊 Summary:');
+      console.log(`👤 Seller: ${customer.firstName} ${customer.lastName} (${customer.email})`);
+      console.log(`🏢 Business Unit: ${businessUnit.name} (${businessUnit.key})`);
+      console.log(`📺 Channel: ${channel.key} [${channel.roles.join(', ')}]`);
+      console.log(`🏪 Store: ${store.key} (Distribution + Supply)`);
+      console.log(`📦 Product Selection: ${productSelection.key}`);
+      console.log('🔗 All resources created and linked successfully!');
 
       // Success notification
       showNotification({
         kind: NOTIFICATION_KINDS_SIDE.success,
         domain: 'side',
         text: intl.formatMessage(
-          { id: 'OnboardCustomer.success', defaultMessage: 'Customer {name} has been successfully onboarded!' },
+          { id: 'OnboardSeller.success', defaultMessage: 'Seller {name} has been successfully onboarded!' },
           { name: `${values.firstName} ${values.lastName}` }
         ),
       });
@@ -321,18 +273,14 @@ const OnboardCustomer: React.FC = () => {
       history.push('/');
 
     } catch (error) {
-      console.error('❌ Onboarding error occurred:', error);
-      console.error('🔍 Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error('❌ Onboarding failed:', error instanceof Error ? error.message : 'Unknown error');
       
       // Error notification
       showNotification({
         kind: NOTIFICATION_KINDS_SIDE.error,
         domain: 'side',
         text: intl.formatMessage(
-          { id: 'OnboardCustomer.error.general', defaultMessage: 'Failed to onboard customer. Please try again.' }
+          { id: 'OnboardSeller.error.general', defaultMessage: 'Failed to onboard seller. Please try again.' }
         ),
       });
     }
@@ -341,9 +289,9 @@ const OnboardCustomer: React.FC = () => {
   const renderError = (key: string) => {
     switch (key) {
       case 'missing':
-        return intl.formatMessage({ id: 'OnboardCustomer.error.missing', defaultMessage: 'This field is required' });
+        return intl.formatMessage({ id: 'OnboardSeller.error.missing', defaultMessage: 'This field is required' });
       case 'invalid':
-        return intl.formatMessage({ id: 'OnboardCustomer.error.invalid', defaultMessage: 'This field is invalid' });
+        return intl.formatMessage({ id: 'OnboardSeller.error.invalid', defaultMessage: 'This field is invalid' });
       default:
         return null;
     }
@@ -469,4 +417,4 @@ const OnboardCustomer: React.FC = () => {
   );
 };
 
-export default OnboardCustomer; 
+export default OnboardSeller; 

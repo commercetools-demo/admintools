@@ -41,6 +41,38 @@ const CREATE_CHANNEL = gql`
   }
 `;
 
+const CREATE_PRODUCT_SELECTION = gql`
+  mutation CreateProductSelection($draft: CreateProductSelectionDraft!) {
+    createProductSelection(draft: $draft) {
+      id
+      version
+      key
+      name(locale: "en-US")
+      mode
+      createdAt
+    }
+  }
+`;
+
+const UPDATE_STORE = gql`
+  mutation UpdateStore($id: String!, $version: Long!, $actions: [StoreUpdateAction!]!) {
+    updateStore(id: $id, version: $version, actions: $actions) {
+      id
+      version
+      key
+      name(locale: "en-US")
+      productSelections {
+        productSelection {
+          id
+          key
+          name(locale: "en-US")
+        }
+        active
+      }
+    }
+  }
+`;
+
 const FIND_STORES = gql`
   query FindStores($where: String) {
     stores(where: $where) {
@@ -111,6 +143,24 @@ export interface ChannelDraft {
   roles: Array<'InventorySupply' | 'ProductDistribution' | 'OrderExport' | 'OrderImport' | 'Primary'>;
 }
 
+export interface CreateProductSelectionDraft {
+  key: string;
+  name: Array<{
+    locale: string;
+    value: string;
+  }>;
+  mode: 'Individual';
+}
+
+export interface ProductSelection {
+  id: string;
+  version: number;
+  key: string;
+  name: string;
+  mode: string;
+  createdAt: string;
+}
+
 export interface Store {
   id: string;
   version: number;
@@ -125,6 +175,14 @@ export interface Store {
     id: string;
     key: string;
     name?: string;
+  }>;
+  productSelections?: Array<{
+    productSelection: {
+      id: string;
+      key: string;
+      name: string;
+    };
+    active: boolean;
   }>;
   createdAt: string;
 }
@@ -157,6 +215,7 @@ export interface UseStoreManagementResult {
   // Actions
   createStore: (draft: CreateStore) => Promise<Store | null>;
   createChannel: (draft: ChannelDraft) => Promise<Channel | null>;
+  createProductSelection: (draft: CreateProductSelectionDraft, storeKey: string) => Promise<ProductSelection | null>;
   findStores: (where?: string) => Promise<StoreSearchResult | null>;
   findChannels: (where?: string) => Promise<ChannelSearchResult | null>;
   clearError: () => void;
@@ -174,6 +233,18 @@ const useStoreManagement = (): UseStoreManagementResult => {
   });
 
   const [createChannelMutation] = useMcMutation(CREATE_CHANNEL, {
+    context: {
+      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+    },
+  });
+
+  const [createProductSelectionMutation] = useMcMutation(CREATE_PRODUCT_SELECTION, {
+    context: {
+      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+    },
+  });
+
+  const [updateStoreMutation] = useMcMutation(UPDATE_STORE, {
     context: {
       target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
     },
@@ -234,6 +305,63 @@ const useStoreManagement = (): UseStoreManagementResult => {
     }
   }, [createChannelMutation]);
 
+  // Create product selection function
+  const createProductSelection = useCallback(async (draft: CreateProductSelectionDraft, storeKey: string): Promise<ProductSelection | null> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Step 1: Create the product selection
+      const { data: createData } = await createProductSelectionMutation({
+        variables: { draft },
+      });
+
+      const productSelection = (createData as any)?.createProductSelection;
+      if (!productSelection) {
+        throw new Error('Failed to create product selection');
+      }
+
+      // Step 2: Find the store to get its current version
+      const storeResult = await findStoresQuery({
+        where: `key="${storeKey}"`,
+      });
+
+      const stores = (storeResult.data as any)?.stores?.results;
+      if (!stores || stores.length === 0) {
+        throw new Error(`Store with key "${storeKey}" not found`);
+      }
+
+      const store = stores[0];
+
+      // Step 3: Update the store to set the product selection
+      await updateStoreMutation({
+        variables: {
+          id: store.id,
+          version: store.version,
+          actions: [{
+            setProductSelections: {
+              productSelections: [{
+                productSelection: {
+                  typeId: 'product-selection',
+                  key: productSelection.key,
+                },
+                active: true,
+              }],
+            },
+          }],
+        },
+      });
+
+      return productSelection;
+    } catch (err) {
+      const apolloError = err as ApolloError;
+      setError(apolloError);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [createProductSelectionMutation, findStoresQuery, updateStoreMutation]);
+
   // Find stores function
   const findStores = useCallback(async (where?: string): Promise<StoreSearchResult | null> => {
     try {
@@ -284,6 +412,7 @@ const useStoreManagement = (): UseStoreManagementResult => {
     error,
     createStore,
     createChannel,
+    createProductSelection,
     findStores,
     findChannels,
     clearError,

@@ -5,8 +5,8 @@ export default defineMessages({
     id: 'AdminDashboard.title',
     defaultMessage: 'Admin Dashboard',
   },
-  onboardCustomer: {
-    id: 'AdminDashboard.onboardCustomer',
-    defaultMessage: 'Onboard Customer',
+  onboardSeller: {
+    id: 'AdminDashboard.onboardSeller',
+    defaultMessage: 'Onboard Seller',
   },
 }); 

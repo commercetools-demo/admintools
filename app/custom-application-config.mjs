@@ -28,7 +28,8 @@ const config = {
       'view_customer_groups',
       'view_business_units',
       'view_associate_roles',
-      'view_key_value_documents'
+      'view_key_value_documents',
+      'view_product_selections'
     ],
     manage: [
       'manage_products', 
@@ -37,7 +38,8 @@ const config = {
       'manage_customer_groups', 
       'manage_business_units',
       'manage_associate_roles',
-      'manage_key_value_documents'
+      'manage_key_value_documents',
+      'manage_product_selections'
     ]
   },
   icon: '${path:@commercetools-frontend/assets/application-icons/rocket.svg}',

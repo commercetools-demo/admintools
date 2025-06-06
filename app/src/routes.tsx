@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Switch, Route, useRouteMatch } from 'react-router-dom';
 import Spacings from '@commercetools-uikit/spacings';
 import AdminDashboard from './components/admin-dashboard';
-import OnboardCustomer from './components/onboard-customer';
+import OnboardSeller from './components/onboard-seller';
 
 type ApplicationRoutesProps = {
   children?: ReactNode;
@@ -24,8 +24,8 @@ const ApplicationRoutes = (_props: ApplicationRoutesProps) => {
   return (
     <Spacings.Inset scale="l">
       <Switch>
-        <Route path={`${match.path}/onboard-customer`}>
-          <OnboardCustomer />
+        <Route path={`${match.path}/onboard-seller`}>
+          <OnboardSeller />
         </Route>
         <Route>
           <AdminDashboard />

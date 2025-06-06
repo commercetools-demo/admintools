@@ -1,12 +1,9 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
 import { useHistory, useRouteMatch } from 'react-router-dom';
-import Constraints from '@commercetools-uikit/constraints';
-import Grid from '@commercetools-uikit/grid';
 import { UsersIcon } from '@commercetools-uikit/icons';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
-import Card from '@commercetools-uikit/card';
 import messages from './messages';
 import styles from './admin-dashboard.module.css';
 
@@ -35,8 +32,8 @@ const AdminDashboard = () => {
   const history = useHistory();
   const match = useRouteMatch();
 
-  const handleOnboardCustomer = () => {
-    history.push(`${match.url}/onboard-customer`);
+  const handleOnboardSeller = () => {
+    history.push(`${match.url}/onboard-seller`);
   };
 
   return (
@@ -48,9 +45,9 @@ const AdminDashboard = () => {
       </div>
       <div className={styles.dashboardGrid}>
         <DashboardCard
-          title={intl.formatMessage(messages.onboardCustomer)}
+          title={intl.formatMessage(messages.onboardSeller)}
           icon={<UsersIcon size="big" color="surface" />}
-          onClick={handleOnboardCustomer}
+          onClick={handleOnboardSeller}
         />
       </div>
     </div>
