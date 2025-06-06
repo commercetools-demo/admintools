@@ -61,6 +61,8 @@ jobs:
             "--configuration" "chat.CTP_CLIENT_SECRET=${{ secrets.CTP_CLIENT_SECRET }}"
             "--configuration" "SELLER_CUSTOMERGROUP_KEY=${{ vars.SELLER_CUSTOMERGROUP_KEY }}"
             "--configuration" "JWT_SECRET=${{ secrets.JWT_SECRET }}"
+            "--configuration" "chat.CTP_AUTH_URL=${{ vars.CTP_AUTH_URL }}"
+            "--configuration" "chat.CTP_API_URL=${{ vars.CTP_API_URL }}"
           )
           
           # Add API keys only if they exist
