@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useMcMutation, useMcQuery } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
-import type { ApolloError } from '@apollo/client';
 import gql from 'graphql-tag';
 
 // GraphQL Mutations and Queries

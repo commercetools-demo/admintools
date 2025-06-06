@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useMcMutation, useMcQuery } from '@commercetools-frontend/application-shell';
+import { useMcMutation } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import type { ApolloError } from '@apollo/client';
 import gql from 'graphql-tag';
@@ -48,31 +48,6 @@ const CREATE_BUSINESS_UNIT = gql`
         key
         name(locale: "en-US")
       }
-    }
-  }
-`;
-
-const FIND_BUSINESS_UNITS = gql`
-  query FindBusinessUnits($where: String) {
-    businessUnits(where: $where) {
-      results {
-        id
-        version
-        key
-        name
-        status
-        unitType
-        contactEmail
-        associates {
-          customer {
-            id
-            email
-            firstName
-            lastName
-          }
-        }
-      }
-      total
     }
   }
 `;

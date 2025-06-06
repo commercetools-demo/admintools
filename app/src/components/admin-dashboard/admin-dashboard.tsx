@@ -1,7 +1,7 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
 import { useHistory, useRouteMatch } from 'react-router-dom';
-import { UsersIcon } from '@commercetools-uikit/icons';
+import { UsersIcon, MailIcon } from '@commercetools-uikit/icons';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import messages from './messages';
@@ -36,6 +36,10 @@ const AdminDashboard = () => {
     history.push(`${match.url}/onboard-seller`);
   };
 
+  const handleManageInvites = () => {
+    history.push(`${match.url}/manage-invites`);
+  };
+
   return (
     <div className={styles.dashboardContainer}>
       <div className={styles.headerContainer}>
@@ -48,6 +52,11 @@ const AdminDashboard = () => {
           title={intl.formatMessage(messages.onboardSeller)}
           icon={<UsersIcon size="big" color="surface" />}
           onClick={handleOnboardSeller}
+        />
+        <DashboardCard
+          title="Manage Invites"
+          icon={<MailIcon size="big" color="surface" />}
+          onClick={handleManageInvites}
         />
       </div>
     </div>

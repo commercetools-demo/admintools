@@ -1,5 +1,4 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import AdminDashboard from './admin-dashboard';
 

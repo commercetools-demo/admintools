@@ -3,7 +3,7 @@ import { Switch, Route, useRouteMatch } from 'react-router-dom';
 import Spacings from '@commercetools-uikit/spacings';
 import AdminDashboard from './components/admin-dashboard';
 import OnboardSeller from './components/onboard-seller';
-import TestMerchantCenter from './components/test-merchant-center';
+import ManageInvites from './components/manage-invites';
 
 type ApplicationRoutesProps = {
   children?: ReactNode;
@@ -28,8 +28,8 @@ const ApplicationRoutes = (_props: ApplicationRoutesProps) => {
         <Route path={`${match.path}/onboard-seller`}>
           <OnboardSeller />
         </Route>
-        <Route path={`${match.path}/test-merchant-center`}>
-          <TestMerchantCenter />
+        <Route path={`${match.path}/manage-invites`}>
+          <ManageInvites />
         </Route>
         <Route>
           <AdminDashboard />

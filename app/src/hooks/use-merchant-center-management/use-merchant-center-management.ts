@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import {
-  useMcQuery,
   useMcLazyQuery,
   useMcMutation,
 } from '@commercetools-frontend/application-shell';
@@ -57,34 +56,6 @@ const INVITE_MUTATION = gql`
 `;
 
 // Type definitions
-interface ProjectOwner {
-  name: string;
-  id: string;
-}
-
-interface OrganizationDetails {
-  id: string;
-  name: string;
-  version: number;
-  teams: Array<{
-    id: string;
-    name: string;
-  }>;
-}
-
-interface ProjectInfoResponse {
-  project: {
-    key: string;
-    owner: ProjectOwner;
-  };
-}
-
-interface OrganizationDetailsResponse {
-  me: {
-    organization: OrganizationDetails;
-  };
-}
-
 interface ValidationResponse {
   invitation: {
     hasValidEmail: boolean;
@@ -127,26 +98,6 @@ interface ProjectInfo {
 interface UserProjectsResponse {
   myProjects: {
     results: ProjectInfo[];
-  };
-}
-
-interface ProjectDetailsResponse {
-  project: {
-    key: string;
-    owner: {
-      name: string;
-      id: string;
-      __typename: string;
-    };
-    __typename: string;
-  };
-}
-
-interface UserResponse {
-  me: {
-    id: string;
-    email: string;
-    __typename: string;
   };
 }
 
@@ -301,13 +252,15 @@ const useMerchantCenterManagement = (): UseMerchantCenterManagementResult => {
           },
         });
 
-        if (invitationResult.data?.invite?.status) {
+        // Check if we got any response data (invitation was processed)
+        if (invitationResult.data?.invite) {
           console.log(
             `✅ Merchant Center invitation sent successfully to ${email}`
           );
+          console.log('✅ Invitation response:', invitationResult.data.invite);
           return true;
         } else {
-          throw new Error('Invitation failed - no status returned');
+          throw new Error('Invitation failed - no response data returned');
         }
       } catch (err) {
         const errorMessage =
