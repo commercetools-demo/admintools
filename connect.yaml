@@ -14,6 +14,10 @@ deployAs:
           description: one of the following gcp-us, gcp-eu, aws-us, aws-eu
           required: true
           default: "gcp-us"
+        - key: ASSOCIATE_ROLE
+          description: Associate Role
+          required: true
+          default: "admin"
   - name: sellertools
     applicationType: merchant-center-custom-application
     configuration:
@@ -31,9 +35,6 @@ deployAs:
           default: "gcp-us"
         - key: CMS_API_URL
           description: CMS API URL
-          required: true
-        - key: SELLER_CUSTOMERGROUP_KEY
-          description: Seller Customer Group Key
           required: true
   - name: chat
     applicationType: service
@@ -94,6 +95,11 @@ deployAs:
           required: false
 inheritAs:
   configuration:
+    standardConfiguration:
+      - key: SELLER_CUSTOMERGROUP_KEY
+        description: Seller Customer Group Key
+        required: true
+        default: "seller"
     securedConfiguration:
       - key: JWT_SECRET
         description: JWT secret
