@@ -18,6 +18,10 @@ deployAs:
           description: Associate Role
           required: true
           default: "admin"
+        - key: MC_TEAM_NAME
+          description: Merchant Center Team Name
+          required: true
+          default: "Sellers"
   - name: sellertools
     applicationType: merchant-center-custom-application
     configuration:

@@ -42,28 +42,29 @@ jobs:
             --id ${{ vars.CONNECTOR_ID }} \
             --deployment-key ${{ steps.deployment-key.outputs.key }} \
             --region ${{ vars.CTP_REGION }} \
-            --configuration app.CUSTOM_APPLICATION_ID=${{ vars.APP_CUSTOM_APPLICATION_ID }} \
-            --configuration app.ENTRY_POINT_URI_PATH=${{ vars.APP_ENTRY_POINT_URI_PATH }} \
-            --configuration app.CLOUD_IDENTIFIER=${{ vars.APP_CLOUD_IDENTIFIER }} \
-            --configuration sellertools.CUSTOM_APPLICATION_ID=${{ vars.SELLERTOOLS_CUSTOM_APPLICATION_ID }} \
-            --configuration sellertools.ENTRY_POINT_URI_PATH=${{ vars.SELLERTOOLS_ENTRY_POINT_URI_PATH }} \
-            --configuration sellertools.CLOUD_IDENTIFIER=${{ vars.SELLERTOOLS_CLOUD_IDENTIFIER }} \
-            --configuration sellertools.CMS_API_URL=${{ vars.SELLERTOOLS_CMS_API_URL }} \
-            --configuration sellertools.SELLER_CUSTOMERGROUP_KEY=${{ vars.SELLERTOOLS_SELLER_CUSTOMERGROUP_KEY }} \
-            --configuration chat.CTP_AUTH_URL=${{ vars.CTP_AUTH_URL }} \
-            --configuration chat.CTP_API_URL=${{ vars.CTP_API_URL }} \
-            --configuration chat.CTP_PROJECT_KEY=${{ vars.CTP_PROJECT_KEY }} \
-            --configuration chat.CTP_CLIENT_ID=${{ vars.CTP_CLIENT_ID }} \
-            --configuration chat.CTP_SCOPE=${{ vars.CTP_SCOPE }} \
-            --configuration chat.CORS_ALLOWED_ORIGINS=${{ vars.CHAT_CORS_ALLOWED_ORIGINS }} \
-            --configuration chat.AI_PROVIDER=${{ vars.CHAT_AI_PROVIDER }} \
-            --configuration chat.AI_MODEL=${{ vars.CHAT_AI_MODEL }} \
-            --configuration chat.AVAILABLE_TOOLS=${{ vars.CHAT_AVAILABLE_TOOLS }} \
-            --configuration chat.MAX_STEPS=${{ vars.CHAT_MAX_STEPS }} \
-            --configuration chat.SYSTEM_PROMPT=${{ vars.CHAT_SYSTEM_PROMPT }} \
-            --configuration chat.CTP_CLIENT_SECRET=${{ secrets.CTP_CLIENT_SECRET }} \
-            --configuration chat.ANTHROPIC_API_KEY=${{ secrets.CHAT_ANTHROPIC_API_KEY }} \
-            --configuration chat.OPENAI_API_KEY=${{ secrets.CHAT_OPENAI_API_KEY }}
+            --configuration 'app.CUSTOM_APPLICATION_ID=${{ vars.APP_CUSTOM_APPLICATION_ID }}' \
+            --configuration 'app.ENTRY_POINT_URI_PATH=${{ vars.APP_ENTRY_POINT_URI_PATH }}' \
+            --configuration 'app.CLOUD_IDENTIFIER=${{ vars.APP_CLOUD_IDENTIFIER }}' \
+            --configuration 'app.MC_TEAM_NAME=${{ vars.APP_MC_TEAM_NAME }}' \
+            --configuration 'sellertools.CUSTOM_APPLICATION_ID=${{ vars.SELLERTOOLS_CUSTOM_APPLICATION_ID }}' \
+            --configuration 'sellertools.ENTRY_POINT_URI_PATH=${{ vars.SELLERTOOLS_ENTRY_POINT_URI_PATH }}' \
+            --configuration 'sellertools.CLOUD_IDENTIFIER=${{ vars.SELLERTOOLS_CLOUD_IDENTIFIER }}' \
+            --configuration 'sellertools.CMS_API_URL=${{ vars.SELLERTOOLS_CMS_API_URL }}' \
+            --configuration 'sellertools.SELLER_CUSTOMERGROUP_KEY=${{ vars.SELLERTOOLS_SELLER_CUSTOMERGROUP_KEY }}' \
+            --configuration 'chat.CTP_AUTH_URL=${{ vars.CTP_AUTH_URL }}' \
+            --configuration 'chat.CTP_API_URL=${{ vars.CTP_API_URL }}' \
+            --configuration 'chat.CTP_PROJECT_KEY=${{ vars.CTP_PROJECT_KEY }}' \
+            --configuration 'chat.CTP_CLIENT_ID=${{ vars.CTP_CLIENT_ID }}' \
+            --configuration 'chat.CTP_SCOPE=${{ vars.CTP_SCOPE }}' \
+            --configuration 'chat.CORS_ALLOWED_ORIGINS=${{ vars.CHAT_CORS_ALLOWED_ORIGINS }}' \
+            --configuration 'chat.AI_PROVIDER=${{ vars.CHAT_AI_PROVIDER }}' \
+            --configuration 'chat.AI_MODEL=${{ vars.CHAT_AI_MODEL }}' \
+            --configuration 'chat.AVAILABLE_TOOLS=${{ vars.CHAT_AVAILABLE_TOOLS }}' \
+            --configuration 'chat.MAX_STEPS=${{ vars.CHAT_MAX_STEPS }}' \
+            --configuration 'chat.SYSTEM_PROMPT=${{ vars.CHAT_SYSTEM_PROMPT }}' \
+            --configuration 'chat.CTP_CLIENT_SECRET=${{ secrets.CTP_CLIENT_SECRET }}' \
+            --configuration 'chat.ANTHROPIC_API_KEY=${{ secrets.CHAT_ANTHROPIC_API_KEY }}' \
+            --configuration 'chat.OPENAI_API_KEY=${{ secrets.CHAT_OPENAI_API_KEY }}'
             
       - name: Output deployment information
         run: |
