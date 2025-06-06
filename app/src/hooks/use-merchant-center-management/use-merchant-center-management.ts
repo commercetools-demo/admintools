@@ -1,5 +1,9 @@
 import { useState, useCallback } from 'react';
-import { useMcQuery, useMcLazyQuery, useMcMutation } from '@commercetools-frontend/application-shell';
+import {
+  useMcQuery,
+  useMcLazyQuery,
+  useMcMutation,
+} from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
 import type { ApolloError } from '@apollo/client';
@@ -8,49 +12,30 @@ import gql from 'graphql-tag';
 // GraphQL query to get user projects and find the current one
 const PROJECT_INFO_QUERY = gql`
   query ProjectInfo {
-    me {
-      projects {
-        results {
-          key
+    myProjects(limit: 500) {
+      results {
+        key
+        owner {
           name
-          __typename
+          id
+          version
+          teams {
+            id
+            name
+          }
         }
       }
-      __typename
-    }
-  }
-`;
-
-// Now we need a separate query to get the project details with owner info
-const GET_PROJECT_DETAILS_QUERY = gql`
-  query GetProjectDetails($projectKey: String!) {
-    project(key: $projectKey) {
-      key
-      owner {
-        name
-        id
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-// We still need to figure out how to get organization version and teams
-// Let's try a different approach for organization details
-const GET_USER_ORGANIZATION_QUERY = gql`
-  query GetUserOrganization {
-    me {
-      id
-      email
-      __typename
     }
   }
 `;
 
 // GraphQL query to validate email for invitation
 const HAS_VALID_EMAIL_QUERY = gql`
-  query HasValidEmailQuery($email: String!, $organizationId: ID!, $teamId: ID!) {
+  query HasValidEmailQuery(
+    $email: String!
+    $organizationId: ID!
+    $teamId: ID!
+  ) {
     invitation(
       where: { email: $email, organizationId: $organizationId, teamId: $teamId }
     ) {
@@ -128,16 +113,20 @@ interface InvitationDraft {
 
 interface ProjectInfo {
   key: string;
-  name: string;
-  __typename: string;
+  owner: {
+    name: string;
+    id: string;
+    version: number;
+    teams: {
+      id: string;
+      name: string;
+    }[];
+  };
 }
 
 interface UserProjectsResponse {
-  me: {
-    projects: {
-      results: ProjectInfo[];
-    };
-    __typename: string;
+  myProjects: {
+    results: ProjectInfo[];
   };
 }
 
@@ -170,27 +159,25 @@ interface UseMerchantCenterManagementResult {
 const useMerchantCenterManagement = (): UseMerchantCenterManagementResult => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApolloError | null>(null);
-  
+
   const { project, environment } = useApplicationContext();
   const currentProjectKey = project?.key;
   const teamName = (environment as any)?.MC_TEAM_NAME;
 
   // Lazy queries and mutations
-  const [getUserProjects] = useMcLazyQuery<UserProjectsResponse>(PROJECT_INFO_QUERY, {
-    context: { target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND },
-  });
+  const [getUserProjects] = useMcLazyQuery<UserProjectsResponse>(
+    PROJECT_INFO_QUERY,
+    {
+      context: { target: GRAPHQL_TARGETS.ADMINISTRATION_SERVICE },
+    }
+  );
 
-  const [getProjectDetails] = useMcLazyQuery<ProjectDetailsResponse>(GET_PROJECT_DETAILS_QUERY, {
-    context: { target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND },
-  });
-
-  const [getUserOrganization] = useMcLazyQuery<UserResponse>(GET_USER_ORGANIZATION_QUERY, {
-    context: { target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND },
-  });
-
-  const [validateEmail] = useMcLazyQuery<ValidationResponse>(HAS_VALID_EMAIL_QUERY, {
-    context: { target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND },
-  });
+  const [validateEmail] = useMcLazyQuery<ValidationResponse>(
+    HAS_VALID_EMAIL_QUERY,
+    {
+      context: { target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND },
+    }
+  );
 
   const [sendInvitation] = useMcMutation<InvitationResponse>(INVITE_MUTATION, {
     context: { target: GRAPHQL_TARGETS.MERCHANT_CENTER_BACKEND },
@@ -199,7 +186,9 @@ const useMerchantCenterManagement = (): UseMerchantCenterManagementResult => {
   const inviteSellerToMerchantCenter = useCallback(
     async (email: string): Promise<boolean> => {
       if (!currentProjectKey || !teamName) {
-        console.warn('⚠️ Missing project key or team name for Merchant Center invitation');
+        console.warn(
+          '⚠️ Missing project key or team name for Merchant Center invitation'
+        );
         return false;
       }
 
@@ -207,62 +196,72 @@ const useMerchantCenterManagement = (): UseMerchantCenterManagementResult => {
       setError(null);
 
       try {
-        console.log('🔍 Step 6.1: Getting user projects for Merchant Center invitation...');
+        console.log(
+          '🔍 Step 6.1: Getting user projects for Merchant Center invitation...'
+        );
         console.log(`🎯 Looking for project with key: ${currentProjectKey}`);
-        
+
         // Step 1: Get all user projects (like FetchLoggedInUser does)
         const userProjectsResult = await getUserProjects();
-        
-        if (!userProjectsResult.data?.me?.projects?.results) {
+
+        if (!userProjectsResult.data?.myProjects?.results) {
           throw new Error('Failed to fetch user projects');
         }
 
-        console.log(`📋 Found ${userProjectsResult.data.me.projects.results.length} projects`);
-        
+        console.log(
+          `📋 Found ${userProjectsResult.data.myProjects.results.length} projects`
+        );
+
         // Find the current project by key
-        const targetProject = userProjectsResult.data.me.projects.results.find(
+        const targetProject = userProjectsResult.data.myProjects.results.find(
           (project) => project.key === currentProjectKey
         );
 
         if (!targetProject) {
-          console.error('Available projects:', userProjectsResult.data.me.projects.results.map(p => p.key));
-          throw new Error(`Project with key "${currentProjectKey}" not found in user projects`);
+          console.error(
+            'Available projects:',
+            userProjectsResult.data.myProjects.results.map((p) => p.key)
+          );
+          throw new Error(
+            `Project with key "${currentProjectKey}" not found in user projects`
+          );
         }
 
-        console.log(`✅ Found target project: ${targetProject.name} (${targetProject.key})`);
+        const organizationId = targetProject.owner.id;
+        const organizationName = targetProject.owner.name;
 
-        // Step 2: Get project details including owner information
-        console.log('🔍 Step 6.2: Getting project details...');
-        
-        const projectDetailsResult = await getProjectDetails({
-          variables: { projectKey: currentProjectKey }
-        });
-        
-        if (!projectDetailsResult.data?.project?.owner) {
-          throw new Error('Failed to fetch project owner information');
-        }
-
-        const organizationId = projectDetailsResult.data.project.owner.id;
-        const organizationName = projectDetailsResult.data.project.owner.name;
-
-        console.log(`✅ Found organization: ${organizationName} (${organizationId})`);
+        console.log(
+          `✅ Found organization: ${organizationName} (${organizationId})`
+        );
 
         // The API error told us the actual version is 247, let's use that for now
         // We still need to find a way to get this dynamically
-        console.log('🔍 Step 6.3: Using organization version from API error feedback...');
-        
-        const organizationVersion = 247; // From API error: "Expected: 1 - Actual: 247"
-        
+        console.log(
+          '🔍 Step 6.3: Using organization version from API error feedback...'
+        );
+
+        const organizationVersion = targetProject.owner.version;
+
         // Using the correct team ID from the working example
         console.log('🔍 Step 6.4: Using team ID from working example...');
-        
-        const teamId = '1cc6a447-a2a1-4c4f-be15-2ebc4a2e6a78'; // From working example
 
-        console.log(`✅ Found organization: ${organizationId}, version: ${organizationVersion}, team: ${teamId}`);
+        const teamId = targetProject.owner.teams.find(
+          (team) => team.name === teamName
+        )?.id;
+
+        if (!teamId) {
+          throw new Error(
+            `Team with name "${teamName}" not found in user projects`
+          );
+        }
+
+        console.log(
+          `✅ Found organization: ${organizationId}, version: ${organizationVersion}, team: ${teamId}`
+        );
 
         // Step 3: Validate email (re-enabling this step as per API documentation)
         console.log('📧 Step 6.5: Validating email for invitation...');
-        
+
         const validationResult = await validateEmail({
           variables: {
             email,
@@ -272,14 +271,16 @@ const useMerchantCenterManagement = (): UseMerchantCenterManagementResult => {
         });
 
         if (!validationResult.data?.invitation?.hasValidEmail) {
-          console.log('⚠️ Email validation failed, but proceeding with invitation...');
+          console.log(
+            '⚠️ Email validation failed, but proceeding with invitation...'
+          );
         } else {
           console.log('✅ Email validation successful');
         }
 
         // Step 4: Send invitation
         console.log('📨 Step 6.6: Sending Merchant Center invitation...');
-        
+
         const invitationDraft: InvitationDraft = {
           emails: [email],
           organization: {
@@ -291,6 +292,9 @@ const useMerchantCenterManagement = (): UseMerchantCenterManagementResult => {
           },
         };
 
+        console.log('🔍 Step 6.7: Sending Merchant Center invitation...');
+        console.log(invitationDraft);
+
         const invitationResult = await sendInvitation({
           variables: {
             draft: invitationDraft,
@@ -298,14 +302,16 @@ const useMerchantCenterManagement = (): UseMerchantCenterManagementResult => {
         });
 
         if (invitationResult.data?.invite?.status) {
-          console.log(`✅ Merchant Center invitation sent successfully to ${email}`);
+          console.log(
+            `✅ Merchant Center invitation sent successfully to ${email}`
+          );
           return true;
         } else {
           throw new Error('Invitation failed - no status returned');
         }
-
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error';
         console.warn(`⚠️ Merchant Center invitation failed: ${errorMessage}`);
         setError(err as ApolloError);
         return false;
@@ -313,7 +319,13 @@ const useMerchantCenterManagement = (): UseMerchantCenterManagementResult => {
         setLoading(false);
       }
     },
-    [currentProjectKey, teamName, getUserProjects, getProjectDetails, validateEmail, sendInvitation]
+    [
+      currentProjectKey,
+      teamName,
+      getUserProjects,
+      validateEmail,
+      sendInvitation,
+    ]
   );
 
   return {
