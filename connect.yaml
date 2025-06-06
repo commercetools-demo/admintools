@@ -10,6 +10,10 @@ deployAs:
           description: The Application entry point URI path
           required: true
           default: "admintools"
+        - key: CLOUD_IDENTIFIER
+          description: one of the following gcp-us, gcp-eu, aws-us, aws-eu
+          required: true
+          default: "gcp-us"
   - name: sellertools
     applicationType: merchant-center-custom-application
     configuration:
@@ -21,6 +25,10 @@ deployAs:
           description: Sellertools Application entry point URI path
           required: true
           default: "sellertools"
+        - key: CLOUD_IDENTIFIER
+          description: one of the following gcp-us, gcp-eu, aws-us, aws-eu
+          required: true
+          default: "gcp-us"
         - key: CMS_API_URL
           description: CMS API URL
           required: true
@@ -63,7 +71,7 @@ deployAs:
           required: true
         - key: AVAILABLE_TOOLS
           description: Available tools (json stringified array)
-          default: "{\"products\":{\"read\":true},\"category\":{\"read\":true},\"cart\":{\"read\":true},\"order\":{\"read\":true}}\""
+          default: '{"products":{"read":true},"category":{"read":true},"cart":{"read":true},"order":{"read":true}}"'
           required: true
         - key: MAX_STEPS
           description: Maximum number of steps for tool execution
@@ -85,10 +93,6 @@ deployAs:
 inheritAs:
   configuration:
     securedConfiguration:
-      - key: CLOUD_IDENTIFIER
-        description: one of the following gcp-us, gcp-eu, aws-us, aws-eu
-        required: true
-        default: "gcp-us"
       - key: JWT_SECRET
         description: JWT secret
         required: true
