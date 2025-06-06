@@ -53,4 +53,12 @@ export default defineMessages({
     id: 'OnboardSeller.error.general',
     defaultMessage: 'Failed to onboard seller. Please try again.',
   },
+  invitationSent: {
+    id: 'OnboardSeller.invitationSent',
+    defaultMessage: 'Invitation to sellertools sent',
+  },
+  invitationFailed: {
+    id: 'OnboardSeller.invitationFailed',
+    defaultMessage: 'Seller created but application invitation failed',
+  },
 }); 

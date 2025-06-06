@@ -45,6 +45,15 @@ When you fill out the onboarding form and submit it, here's exactly what happens
   - Includes address information if phone number is provided
 - **Why it matters**: Business units are the central hub that manages all business operations
 
+### Step 6: 📨 Send Merchant Center Invitation
+- **What it does**: Invites the seller to access the Merchant Center platform
+- **Details**: 
+  - Retrieves organization and team information from the current project
+  - Validates the seller's email for invitation eligibility
+  - Sends an invitation to join the configured team (from `MC_TEAM_NAME` environment variable)
+- **Why it matters**: Gives sellers access to the Merchant Center interface to manage their business operations
+- **Error Handling**: If invitation fails, the onboarding continues but shows a warning notification
+
 ## 🔗 How Everything Connects
 
 Here's how all the pieces work together:
@@ -61,6 +70,8 @@ Here's how all the pieces work together:
 📦 Product Access & Inventory Management
     ↑ (filtered by)
 📦 Product Selection (Assigned)
+    ↓ (invited to access)
+📨 Merchant Center Platform
 ```
 
 ## 📊 What Gets Created
@@ -72,6 +83,7 @@ For a seller named "Johnny Ortiz" from "Business X", the system creates:
 - **Store**: "Business X Store" (key: `business-x-store`) with both distribution and supply channels
 - **Channel**: "Business X Channel" (key: `business-x-channel`) with dual roles [InventorySupply, ProductDistribution]
 - **Product Selection**: "Business X Selection" (key: `business-x-selection`) properly assigned to store
+- **Merchant Center Invitation**: Email invitation sent to `johnny.ortiz@business-x.com` to join the configured team
 
 ## 🎯 Benefits for Your Business
 
@@ -100,6 +112,8 @@ The system provides clean, emoji-enhanced logging:
 ✅ Product selection created and assigned to store
 🏢 Step 5: Creating business unit...
 ✅ Business unit created with store assignment
+📨 Step 6: Creating Merchant Center invitation...
+✅ Merchant Center invitation sent successfully
 🎉 === ONBOARD SELLER COMPLETE ===
 📊 Summary:
 👤 Seller: Johnny Ortiz (johnny.ortiz@business-x.com)
@@ -107,6 +121,7 @@ The system provides clean, emoji-enhanced logging:
 📺 Channel: business-x-channel [InventorySupply, ProductDistribution]
 🏪 Store: business-x-store (Distribution + Supply)
 📦 Product Selection: business-x-selection
+📨 Merchant Center Invitation: Sent ✅
 🔗 All resources created and linked successfully!
 ```
 
@@ -118,3 +133,5 @@ The system provides clean, emoji-enhanced logging:
 - **Form Validation**: Ensures data quality before submission
 - **Error Handling**: Graceful handling with user-friendly notifications
 - **Comprehensive Logging**: Clean, informative console output for debugging
+- **Merchant Center Integration**: Automated invitation system using Merchant Center Backend API
+- **Environment Configuration**: Requires `MC_TEAM_NAME` environment variable for team assignment

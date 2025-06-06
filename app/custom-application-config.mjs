@@ -19,6 +19,7 @@ const config = {
   additionalEnv: {
     'CUSTOMER_GROUP': '${env:CUSTOMER_GROUP}',
     'ASSOCIATE_ROLE': '${env:ASSOCIATE_ROLE}',
+    'MC_TEAM_NAME': '${env:MC_TEAM_NAME}',
   },
   oAuthScopes: {
     view: [

@@ -12,6 +12,7 @@ import { NOTIFICATION_KINDS_SIDE } from '@commercetools-frontend/constants';
 import useCustomerManagement from '../../hooks/use-customer-management';
 import useBusinessUnitManagement from '../../hooks/use-business-unit-management';
 import useStoreManagement from '../../hooks/use-store-management';
+import useMerchantCenterManagement from '../../hooks/use-merchant-center-management';
 import messages from './messages';
 import styles from './onboard-seller.module.css';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
@@ -73,11 +74,12 @@ const OnboardSeller: React.FC = () => {
   const customerManagement = useCustomerManagement();
   const businessUnitManagement = useBusinessUnitManagement();
   const storeManagement = useStoreManagement();
+  const merchantCenterManagement = useMerchantCenterManagement();
 
   const { environment }: { environment: { CUSTOMER_GROUP: string, ASSOCIATE_ROLE: string } } = useApplicationContext();
   
   // Loading state - true if any of the hooks are loading
-  const isLoading = customerManagement.loading || businessUnitManagement.loading || storeManagement.loading;
+  const isLoading = customerManagement.loading || businessUnitManagement.loading || storeManagement.loading || merchantCenterManagement.loading;
 
   const handleBackToDashboard = () => {
     history.push('/');
@@ -249,6 +251,28 @@ const OnboardSeller: React.FC = () => {
 
       console.log('✅ Business unit created with store assignment');
 
+      // Step 6: Create Merchant Center invitation
+      console.log('📨 Step 6: Creating Merchant Center invitation...');
+      const invitationSuccess = await merchantCenterManagement.inviteSellerToMerchantCenter(values.email);
+
+      if (invitationSuccess) {
+        console.log('✅ Merchant Center invitation sent successfully');
+        // Show success notification for invitation
+        showNotification({
+          kind: NOTIFICATION_KINDS_SIDE.success,
+          domain: 'side',
+          text: intl.formatMessage(messages.invitationSent),
+        });
+      } else {
+        console.warn('⚠️ Merchant Center invitation failed, but continuing with onboarding');
+        // Show warning notification for invitation failure
+        showNotification({
+          kind: NOTIFICATION_KINDS_SIDE.warning,
+          domain: 'side',
+          text: intl.formatMessage(messages.invitationFailed),
+        });
+      }
+
       // 🎉 Final Summary
       console.log('🎉 === ONBOARD SELLER COMPLETE ===');
       console.log('📊 Summary:');
@@ -257,9 +281,10 @@ const OnboardSeller: React.FC = () => {
       console.log(`📺 Channel: ${channel.key} [${channel.roles.join(', ')}]`);
       console.log(`🏪 Store: ${store.key} (Distribution + Supply)`);
       console.log(`📦 Product Selection: ${productSelection.key}`);
+      console.log(`📨 Merchant Center Invitation: ${invitationSuccess ? 'Sent ✅' : 'Failed ⚠️'}`);
       console.log('🔗 All resources created and linked successfully!');
 
-      // Success notification
+      // Success notification for overall onboarding
       showNotification({
         kind: NOTIFICATION_KINDS_SIDE.success,
         domain: 'side',
