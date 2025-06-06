@@ -37,6 +37,8 @@ deployAs:
           required: true
   - name: chat
     applicationType: service
+    scripts:
+      postDeploy: node build/connector/post-deploy.js
     endpoint: /chat
     configuration:
       standardConfiguration:

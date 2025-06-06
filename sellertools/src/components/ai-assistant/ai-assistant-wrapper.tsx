@@ -1,24 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useCustomObject } from '../../hooks/use-custom-objects';
 import AiAssistant from '.';
 import { signWithJose } from './utils';
 import { useAuthContext } from '../../contexts/auth-context';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
-// import { useExternalCall } from '../../hooks/use-external-call';
+import axios from 'axios';
 
 const SHARED_CONTAINER = 'temp-container';
 const SHARED_KEY = 'chat-app-deployed-url';
 
 const AIAssistantWrapper = () => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
   const { getCustomObject } = useCustomObject(SHARED_CONTAINER);
   const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string>('');
-  //   const [isHealthy, setIsHealthy] = useState(false);
-  //   const { fetch } = useExternalCall();
-  const { environment }: { environment: { JWT_TOKEN: string } } =
-    useApplicationContext();
+
+  const [isHealthy, setIsHealthy] = useState(isDevelopment);
+  const { environment, project } = useApplicationContext();
   const { storeKey } = useAuthContext();
+
+  const fetchDeployedUrl = useCallback(async () => {
+    try {
+      const deployedUrlResult = await getCustomObject(SHARED_KEY);
+      setDeployedUrl(deployedUrlResult.value);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching deployed URL:', error);
+      setIsLoading(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getCustomObject]);
 
   // Generate token on component mount
   useEffect(() => {
@@ -26,7 +39,7 @@ const AIAssistantWrapper = () => {
       try {
         const generatedToken = await signWithJose(
           storeKey!,
-          environment?.JWT_TOKEN
+          (environment as any)?.JWT_TOKEN
         );
         setToken(generatedToken);
       } catch (error) {
@@ -38,31 +51,30 @@ const AIAssistantWrapper = () => {
   }, [storeKey]);
 
   useEffect(() => {
-    const fetchDeployedUrl = async () => {
-      try {
-        const deployedUrlResult = await getCustomObject(SHARED_KEY);
-        setDeployedUrl(deployedUrlResult.value);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching deployed URL:', error);
-        setIsLoading(false);
-      } finally {
-        setIsLoading(false);
-      }
+    fetchDeployedUrl();
+  }, [fetchDeployedUrl]);
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      const result = await axios.get(
+        `${deployedUrl}/ping?storeKey=${storeKey}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setIsHealthy(
+        result.status === 200 && result.data.projectkey === project?.key
+      );
     };
 
-    fetchDeployedUrl();
-  }, []);
+    if (deployedUrl && storeKey && token && !isDevelopment) {
+      checkHealth();
+    }
+  }, [deployedUrl, storeKey, token, isDevelopment]);
 
-  //   useEffect(() => {
-  //     const checkHealth = async () => {
-  //       const result = await fetch(`${deployedUrl}/ping`);
-  //       setIsHealthy(result.status === 200);
-  //     };
-  //     checkHealth();
-  //   }, [deployedUrl]);
-
-  if (!deployedUrl || isLoading || !token) {
+  if (!deployedUrl || isLoading || !token || !isHealthy) {
     return null;
   }
 
