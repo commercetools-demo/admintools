@@ -31,7 +31,7 @@ jobs:
       - name: Generate deployment key
         id: deployment-key
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "latest")
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "$(date +%Y-%m-%d-%H)")
           DEPLOYMENT_KEY="admintools-$LATEST_TAG"
           echo "key=$DEPLOYMENT_KEY" >> $GITHUB_OUTPUT
           echo "Generated deployment key: $DEPLOYMENT_KEY"

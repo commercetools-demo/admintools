@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
 
 jobs:
   update-and-publish-connector:
@@ -40,3 +41,87 @@ jobs:
         run: |
           commercetools connect connectorstaged publish \
             --id ${{ vars.CONNECTOR_ID }}
+
+  create-preview-deployment:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Install commercetools CLI
+        run: npm install -g @commercetools/cli
+        
+      - name: Login to commercetools CLI
+        run: |
+          commercetools auth login \
+            --client-credentials \
+            --client-id ${{ vars.CTP_CLIENT_ID }} \
+            --client-secret ${{ secrets.CTP_CLIENT_SECRET }} \
+            --region ${{ vars.CTP_REGION }} \
+            --project-key ${{ vars.CTP_PROJECT_KEY }}
+            
+      - name: Generate deployment key
+        id: deployment-key
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "$(date +%Y-%m-%d-%H)")
+          DEPLOYMENT_KEY="admintools-$LATEST_TAG"
+          echo "key=$DEPLOYMENT_KEY" >> $GITHUB_OUTPUT
+          echo "Generated deployment key: $DEPLOYMENT_KEY"
+            
+      - name: Create preview deployment
+        run: |
+          # Build the command arguments array
+          ARGS=(
+            "commercetools" "connect" "connectorstaged" "preview"
+            "--id" "${{ vars.CONNECTOR_ID }}"
+            "--deployment-key" "${{ steps.deployment-key.outputs.key }}"
+            "--region" "${{ vars.CTP_REGION }}"
+            "--configuration" "app.CUSTOM_APPLICATION_ID=${{ vars.APP_CUSTOM_APPLICATION_ID }}"
+            "--configuration" "app.ENTRY_POINT_URI_PATH=${{ vars.APP_ENTRY_POINT_URI_PATH }}"
+            "--configuration" "app.CLOUD_IDENTIFIER=${{ vars.APP_CLOUD_IDENTIFIER }}"
+            "--configuration" "app.MC_TEAM_NAME=${{ vars.APP_MC_TEAM_NAME }}"
+            "--configuration" "sellertools.CUSTOM_APPLICATION_ID=${{ vars.SELLERTOOLS_CUSTOM_APPLICATION_ID }}"
+            "--configuration" "sellertools.ENTRY_POINT_URI_PATH=${{ vars.SELLERTOOLS_ENTRY_POINT_URI_PATH }}"
+            "--configuration" "sellertools.CLOUD_IDENTIFIER=${{ vars.SELLERTOOLS_CLOUD_IDENTIFIER }}"
+            "--configuration" "sellertools.CMS_API_URL=${{ vars.SELLERTOOLS_CMS_API_URL }}"
+            "--configuration" "sellertools.SELLER_CUSTOMERGROUP_KEY=${{ vars.SELLERTOOLS_SELLER_CUSTOMERGROUP_KEY }}"
+            "--configuration" "chat.CTP_PROJECT_KEY=${{ vars.CTP_PROJECT_KEY }}"
+            "--configuration" "chat.CTP_CLIENT_ID=${{ vars.CTP_CLIENT_ID }}"
+            "--configuration" "chat.CTP_SCOPE=${{ vars.CTP_SCOPE }}"
+            "--configuration" "chat.AI_PROVIDER=${{ vars.CHAT_AI_PROVIDER }}"
+            "--configuration" "chat.AI_MODEL=${{ vars.CHAT_AI_MODEL }}"
+            "--configuration" "chat.CTP_CLIENT_SECRET=${{ secrets.CTP_CLIENT_SECRET }}"
+            "--configuration" "SELLER_CUSTOMERGROUP_KEY=${{ vars.SELLER_CUSTOMERGROUP_KEY }}"
+            "--configuration" "JWT_SECRET=${{ secrets.JWT_SECRET }}"
+            "--configuration" "chat.CTP_AUTH_URL=${{ vars.CTP_AUTH_URL }}"
+            "--configuration" "chat.CTP_API_URL=${{ vars.CTP_API_URL }}"
+          )
+          
+          # Add API keys only if they exist
+          if [ -n "${{ secrets.CHAT_ANTHROPIC_API_KEY }}" ]; then
+            ARGS+=("--configuration" "chat.ANTHROPIC_API_KEY=${{ secrets.CHAT_ANTHROPIC_API_KEY }}")
+          fi
+          
+          if [ -n "${{ secrets.CHAT_OPENAI_API_KEY }}" ]; then
+            ARGS+=("--configuration" "chat.OPENAI_API_KEY=${{ secrets.CHAT_OPENAI_API_KEY }}")
+          fi
+          
+          echo "Executing commercetools command:"
+          printf '%s ' "${ARGS[@]}"
+          echo
+          echo "---"
+          
+          "${ARGS[@]}"
+            
+      - name: Output deployment information
+        run: |
+          echo "Preview deployment created successfully!"
+          echo "Deployment key: ${{ steps.deployment-key.outputs.key }}"
+          echo "Region: ${{ vars.CTP_REGION }}"
