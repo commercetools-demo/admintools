@@ -38,7 +38,7 @@ jobs:
             
       - name: Create preview deployment
         run: |
-          COMMAND="commercetools connect connectorstaged preview \
+          commercetools connect connectorstaged preview \
             --id ${{ vars.CONNECTOR_ID }} \
             --deployment-key ${{ steps.deployment-key.outputs.key }} \
             --region ${{ vars.CTP_REGION }} \
@@ -67,12 +67,6 @@ jobs:
             --configuration chat.OPENAI_API_KEY="${{ secrets.CHAT_OPENAI_API_KEY }}" \
             --configuration SELLER_CUSTOMERGROUP_KEY="${{ vars.SELLER_CUSTOMERGROUP_KEY }}" \
             --configuration JWT_SECRET="${{ secrets.JWT_SECRET }}"
-          
-          echo "Executing commercetools command:"
-          echo "$COMMAND"
-          echo "---"
-          
-          eval "$COMMAND"
             
       - name: Output deployment information
         run: |
