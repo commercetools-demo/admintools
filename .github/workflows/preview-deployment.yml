@@ -56,8 +56,6 @@ jobs:
             --configuration chat.CTP_SCOPE='${{ vars.CTP_SCOPE }}' \
             --configuration chat.AI_PROVIDER="${{ vars.CHAT_AI_PROVIDER }}" \
             --configuration chat.AI_MODEL="${{ vars.CHAT_AI_MODEL }}" \
-            --configuration chat.MAX_STEPS="${{ vars.CHAT_MAX_STEPS }}" \
-            --configuration chat.SYSTEM_PROMPT="${{ vars.CHAT_SYSTEM_PROMPT }}" \
             --configuration chat.CTP_CLIENT_SECRET="${{ secrets.CTP_CLIENT_SECRET }}" \
             --configuration chat.ANTHROPIC_API_KEY="${{ secrets.CHAT_ANTHROPIC_API_KEY }}" \
             --configuration chat.OPENAI_API_KEY="${{ secrets.CHAT_OPENAI_API_KEY }}" \
