@@ -63,7 +63,7 @@ deployAs:
           required: true
         - key: AVAILABLE_TOOLS
           description: Available tools (json stringified array)
-          default: "{\"products\":{\"read\":true},\"category\":{\"read\":true},\"cart\":{\"read\":true},\"order\":{\"read":true}}\""
+          default: "{\"products\":{\"read\":true},\"category\":{\"read\":true},\"cart\":{\"read\":true},\"order\":{\"read\":true}}\""
           required: true
         - key: MAX_STEPS
           description: Maximum number of steps for tool execution
