@@ -15,7 +15,7 @@ const ManageInvites: React.FC = () => {
   const showNotification = useShowNotification();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const merchantCenterManagement = useMerchantCenterManagement();
 
   const handleBackToDashboard = () => {
@@ -33,12 +33,13 @@ const ManageInvites: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    
+
     try {
       console.log('Sending Merchant Center invitation...');
       console.log(`Email: ${email}`);
-      
-      const invitationSuccess = await merchantCenterManagement.inviteSellerToMerchantCenter(email);
+
+      const invitationSuccess =
+        await merchantCenterManagement.inviteSellerToMerchantCenter(email);
 
       if (invitationSuccess) {
         console.log('Invitation sent successfully');
@@ -61,7 +62,9 @@ const ManageInvites: React.FC = () => {
       showNotification({
         kind: NOTIFICATION_KINDS_SIDE.error,
         domain: 'side',
-        text: `Error sending invitation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        text: `Error sending invitation: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       });
     } finally {
       setIsSubmitting(false);
@@ -72,11 +75,10 @@ const ManageInvites: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleSection}>
-          <Text.Headline as="h1">
-            Manage Invites
-          </Text.Headline>
+          <Text.Headline as="h1">Manage Invites</Text.Headline>
           <Text.Detail>
-            Sends an invitation to join the Merchant Center platform and grants access to the sellertools team and resources
+            Sends an invitation to join the Merchant Center platform and grants
+            access to the sellertools team and resources
           </Text.Detail>
         </div>
         <div className={styles.actionButtons}>
@@ -101,7 +103,7 @@ const ManageInvites: React.FC = () => {
                 horizontalConstraint={16}
                 isRequired
               />
-              
+
               <div className={styles.buttonsContainer}>
                 <PrimaryButton
                   label="Send Invitation"
@@ -110,7 +112,7 @@ const ManageInvites: React.FC = () => {
                   size="20"
                 />
               </div>
-              
+
               {merchantCenterManagement.loading && (
                 <Text.Detail tone="information">
                   Sending invitation...
@@ -124,4 +126,4 @@ const ManageInvites: React.FC = () => {
   );
 };
 
-export default ManageInvites; 
+export default ManageInvites;

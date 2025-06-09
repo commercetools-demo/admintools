@@ -1,1 +1,1 @@
-export { default } from './manage-invites'; 
+export { default } from './manage-invites';

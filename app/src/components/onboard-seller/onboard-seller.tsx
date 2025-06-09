@@ -53,12 +53,20 @@ const validate = (values: TFormValues): TFormErrors => {
   }
 
   // Email validation - only validate format if email is provided
-  if (values.email && values.email.trim() !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+  if (
+    values.email &&
+    values.email.trim() !== '' &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)
+  ) {
     errors.email = { invalid: true };
   }
 
   // Phone Number validation - only validate format if phone is provided
-  if (values.phoneNumber && values.phoneNumber.trim() !== '' && !/^\+?[\d\s\-\(\)]+$/.test(values.phoneNumber)) {
+  if (
+    values.phoneNumber &&
+    values.phoneNumber.trim() !== '' &&
+    !/^\+?[\d\s\-\(\)]+$/.test(values.phoneNumber)
+  ) {
     errors.phoneNumber = { invalid: true };
   }
 
@@ -69,17 +77,24 @@ const OnboardSeller: React.FC = () => {
   const intl = useIntl();
   const history = useHistory();
   const showNotification = useShowNotification();
-  
+
   // Custom hooks for GraphQL operations
   const customerManagement = useCustomerManagement();
   const businessUnitManagement = useBusinessUnitManagement();
   const storeManagement = useStoreManagement();
   const merchantCenterManagement = useMerchantCenterManagement();
 
-  const { environment }: { environment: { CUSTOMER_GROUP: string, ASSOCIATE_ROLE: string } } = useApplicationContext();
-  
+  const {
+    environment,
+  }: { environment: { CUSTOMER_GROUP: string; ASSOCIATE_ROLE: string } } =
+    useApplicationContext();
+
   // Loading state - true if any of the hooks are loading
-  const isLoading = customerManagement.loading || businessUnitManagement.loading || storeManagement.loading || merchantCenterManagement.loading;
+  const isLoading =
+    customerManagement.loading ||
+    businessUnitManagement.loading ||
+    storeManagement.loading ||
+    merchantCenterManagement.loading;
 
   const handleBackToDashboard = () => {
     history.push('/');
@@ -88,17 +103,18 @@ const OnboardSeller: React.FC = () => {
   const handleSubmit = async (values: TFormValues) => {
     try {
       console.log('🚀 Starting seller onboarding process...');
-      
+
       // Transform company name to key format (lowercase, spaces to dashes)
       const companyKey = values.companyName.toLowerCase().replace(/\s+/g, '-');
       const companyName = values.companyName; // Keep original for display
-      
-      console.log(`📝 Onboarding: ${companyName} (${values.firstName} ${values.lastName})`);
+
+      console.log(
+        `📝 Onboarding: ${companyName} (${values.firstName} ${values.lastName})`
+      );
 
       // Step 1: Create the customer with ExternalAuth and customer group
       console.log('👤 Step 1: Creating seller account...');
       const customerGroupKey = environment?.CUSTOMER_GROUP;
-    
 
       const customer = await customerManagement.createCustomer({
         email: values.email,
@@ -106,10 +122,12 @@ const OnboardSeller: React.FC = () => {
         lastName: values.lastName,
         companyName: companyName,
         authenticationMode: 'ExternalAuth',
-        customerGroup: customerGroupKey ? {
-          typeId: 'customer-group',
-          key: customerGroupKey
-        } : undefined
+        customerGroup: customerGroupKey
+          ? {
+              typeId: 'customer-group',
+              key: customerGroupKey,
+            }
+          : undefined,
       });
 
       if (!customer) {
@@ -117,14 +135,17 @@ const OnboardSeller: React.FC = () => {
       }
 
       // Step 1.1: Create email verification token
-      const verificationToken = await customerManagement.createEmailVerificationToken(customer.id, 10);
+      const verificationToken =
+        await customerManagement.createEmailVerificationToken(customer.id, 10);
 
       if (!verificationToken) {
         throw new Error('Failed to create email verification token');
       }
 
       // Step 1.2: Confirm email with the token
-      const verifiedCustomer = await customerManagement.confirmEmail(verificationToken);
+      const verifiedCustomer = await customerManagement.confirmEmail(
+        verificationToken
+      );
 
       if (!verifiedCustomer) {
         throw new Error('Failed to verify customer email');
@@ -169,14 +190,18 @@ const OnboardSeller: React.FC = () => {
             value: `${companyName} Store`,
           },
         ],
-        distributionChannels: [{
-          typeId: 'channel',
-          key: channelKey,
-        }],
-        supplyChannels: [{
-          typeId: 'channel',
-          key: channelKey,
-        }],
+        distributionChannels: [
+          {
+            typeId: 'channel',
+            key: channelKey,
+          },
+        ],
+        supplyChannels: [
+          {
+            typeId: 'channel',
+            key: channelKey,
+          },
+        ],
       });
 
       if (!store) {
@@ -188,16 +213,19 @@ const OnboardSeller: React.FC = () => {
       // Step 4: Create product selection and assign to store
       console.log('📦 Step 4: Creating product selection...');
       const productSelectionKey = `${companyKey}-selection`;
-      const productSelection = await storeManagement.createProductSelection({
-        key: productSelectionKey,
-        name: [
-          {
-            locale: 'en-US',
-            value: `${companyName} Selection`,
-          },
-        ],
-        mode: 'Individual',
-      }, storeKey);
+      const productSelection = await storeManagement.createProductSelection(
+        {
+          key: productSelectionKey,
+          name: [
+            {
+              locale: 'en-US',
+              value: `${companyName} Selection`,
+            },
+          ],
+          mode: 'Individual',
+        },
+        storeKey
+      );
 
       if (!productSelection) {
         throw new Error('Failed to create product selection');
@@ -208,40 +236,50 @@ const OnboardSeller: React.FC = () => {
       // Step 5: Create business unit with associate and store references
       console.log('🏢 Step 5: Creating business unit...');
       const associateRoleKey = environment?.ASSOCIATE_ROLE;
-      
+
       if (!associateRoleKey) {
         throw new Error('ASSOCIATE_ROLE environment variable is not set');
       }
-      
+
       const businessUnit = await businessUnitManagement.createBusinessUnit({
         key: companyKey,
         name: companyName,
         unitType: 'Company',
         contactEmail: values.email,
-        addresses: values.phoneNumber ? [{
-          key: `${companyKey}-address`,
-          country: 'US',
-          firstName: values.firstName,
-          lastName: values.lastName,
-          company: companyName,
-          phone: values.phoneNumber,
-        }] : undefined,
-        associates: [{
-          customer: {
-            typeId: 'customer',
-            id: customer.id,
-          },
-          associateRoleAssignments: [{
-            associateRole: {
-              typeId: 'associate-role',
-              key: associateRoleKey,
+        addresses: values.phoneNumber
+          ? [
+              {
+                key: `${companyKey}-address`,
+                country: 'US',
+                firstName: values.firstName,
+                lastName: values.lastName,
+                company: companyName,
+                phone: values.phoneNumber,
+              },
+            ]
+          : undefined,
+        associates: [
+          {
+            customer: {
+              typeId: 'customer',
+              id: customer.id,
             },
-          }],
-        }],
-        stores: [{
-          typeId: 'store',
-          key: storeKey,
-        }],
+            associateRoleAssignments: [
+              {
+                associateRole: {
+                  typeId: 'associate-role',
+                  key: associateRoleKey,
+                },
+              },
+            ],
+          },
+        ],
+        stores: [
+          {
+            typeId: 'store',
+            key: storeKey,
+          },
+        ],
         storeMode: 'Explicit',
       });
 
@@ -253,7 +291,10 @@ const OnboardSeller: React.FC = () => {
 
       // Step 6: Create Merchant Center invitation
       console.log('📨 Step 6: Creating Merchant Center invitation...');
-      const invitationSuccess = await merchantCenterManagement.inviteSellerToMerchantCenter(values.email);
+      const invitationSuccess =
+        await merchantCenterManagement.inviteSellerToMerchantCenter(
+          values.email
+        );
 
       if (invitationSuccess) {
         console.log('✅ Merchant Center invitation sent successfully');
@@ -264,7 +305,9 @@ const OnboardSeller: React.FC = () => {
           text: intl.formatMessage(messages.invitationSent),
         });
       } else {
-        console.warn('⚠️ Merchant Center invitation failed, but continuing with onboarding');
+        console.warn(
+          '⚠️ Merchant Center invitation failed, but continuing with onboarding'
+        );
         // Show warning notification for invitation failure
         showNotification({
           kind: NOTIFICATION_KINDS_SIDE.warning,
@@ -276,12 +319,20 @@ const OnboardSeller: React.FC = () => {
       // 🎉 Final Summary
       console.log('🎉 === ONBOARD SELLER COMPLETE ===');
       console.log('📊 Summary:');
-      console.log(`👤 Seller: ${customer.firstName} ${customer.lastName} (${customer.email})`);
-      console.log(`🏢 Business Unit: ${businessUnit.name} (${businessUnit.key})`);
+      console.log(
+        `👤 Seller: ${customer.firstName} ${customer.lastName} (${customer.email})`
+      );
+      console.log(
+        `🏢 Business Unit: ${businessUnit.name} (${businessUnit.key})`
+      );
       console.log(`📺 Channel: ${channel.key} [${channel.roles.join(', ')}]`);
       console.log(`🏪 Store: ${store.key} (Distribution + Supply)`);
       console.log(`📦 Product Selection: ${productSelection.key}`);
-      console.log(`📨 Merchant Center Invitation: ${invitationSuccess ? 'Sent ✅' : 'Failed ⚠️'}`);
+      console.log(
+        `📨 Merchant Center Invitation: ${
+          invitationSuccess ? 'Sent ✅' : 'Failed ⚠️'
+        }`
+      );
       console.log('🔗 All resources created and linked successfully!');
 
       // Success notification for overall onboarding
@@ -289,24 +340,30 @@ const OnboardSeller: React.FC = () => {
         kind: NOTIFICATION_KINDS_SIDE.success,
         domain: 'side',
         text: intl.formatMessage(
-          { id: 'OnboardSeller.success', defaultMessage: 'Seller {name} has been successfully onboarded!' },
+          {
+            id: 'OnboardSeller.success',
+            defaultMessage: 'Seller {name} has been successfully onboarded!',
+          },
           { name: `${values.firstName} ${values.lastName}` }
         ),
       });
 
       // Navigate back to dashboard
       history.push('/');
-
     } catch (error) {
-      console.error('❌ Onboarding failed:', error instanceof Error ? error.message : 'Unknown error');
-      
+      console.error(
+        '❌ Onboarding failed:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+
       // Error notification
       showNotification({
         kind: NOTIFICATION_KINDS_SIDE.error,
         domain: 'side',
-        text: intl.formatMessage(
-          { id: 'OnboardSeller.error.general', defaultMessage: 'Failed to onboard seller. Please try again.' }
-        ),
+        text: intl.formatMessage({
+          id: 'OnboardSeller.error.general',
+          defaultMessage: 'Failed to onboard seller. Please try again.',
+        }),
       });
     }
   };
@@ -314,9 +371,15 @@ const OnboardSeller: React.FC = () => {
   const renderError = (key: string) => {
     switch (key) {
       case 'missing':
-        return intl.formatMessage({ id: 'OnboardSeller.error.missing', defaultMessage: 'This field is required' });
+        return intl.formatMessage({
+          id: 'OnboardSeller.error.missing',
+          defaultMessage: 'This field is required',
+        });
       case 'invalid':
-        return intl.formatMessage({ id: 'OnboardSeller.error.invalid', defaultMessage: 'This field is invalid' });
+        return intl.formatMessage({
+          id: 'OnboardSeller.error.invalid',
+          defaultMessage: 'This field is invalid',
+        });
       default:
         return null;
     }
@@ -329,9 +392,7 @@ const OnboardSeller: React.FC = () => {
           <Text.Headline as="h1">
             {intl.formatMessage(messages.title)}
           </Text.Headline>
-          <Text.Detail>
-            {intl.formatMessage(messages.subtitle)}
-          </Text.Detail>
+          <Text.Detail>{intl.formatMessage(messages.subtitle)}</Text.Detail>
         </div>
         <div className={styles.actionButtons}>
           <PrimaryButton
@@ -365,64 +426,76 @@ const OnboardSeller: React.FC = () => {
                       onChange={formikProps.handleChange}
                       onBlur={formikProps.handleBlur}
                       title={intl.formatMessage(messages.companyName)}
-                      errors={formikProps.errors.companyName as unknown as TFieldErrors}
+                      errors={
+                        formikProps.errors
+                          .companyName as unknown as TFieldErrors
+                      }
                       touched={formikProps.touched.companyName}
                       renderError={renderError}
                       horizontalConstraint={16}
                       isRequired
                     />
-                    
+
                     <TextField
                       name="firstName"
                       value={formikProps.values.firstName}
                       onChange={formikProps.handleChange}
                       onBlur={formikProps.handleBlur}
                       title={intl.formatMessage(messages.firstName)}
-                      errors={formikProps.errors.firstName as unknown as TFieldErrors}
+                      errors={
+                        formikProps.errors.firstName as unknown as TFieldErrors
+                      }
                       touched={formikProps.touched.firstName}
                       renderError={renderError}
                       horizontalConstraint={16}
                       isRequired
                     />
-                    
+
                     <TextField
                       name="lastName"
                       value={formikProps.values.lastName}
                       onChange={formikProps.handleChange}
                       onBlur={formikProps.handleBlur}
                       title={intl.formatMessage(messages.lastName)}
-                      errors={formikProps.errors.lastName as unknown as TFieldErrors}
+                      errors={
+                        formikProps.errors.lastName as unknown as TFieldErrors
+                      }
                       touched={formikProps.touched.lastName}
                       renderError={renderError}
                       horizontalConstraint={16}
                       isRequired
                     />
-                    
+
                     <TextField
                       name="email"
                       value={formikProps.values.email}
                       onChange={formikProps.handleChange}
                       onBlur={formikProps.handleBlur}
                       title={intl.formatMessage(messages.email)}
-                      errors={formikProps.errors.email as unknown as TFieldErrors}
+                      errors={
+                        formikProps.errors.email as unknown as TFieldErrors
+                      }
                       touched={formikProps.touched.email}
                       renderError={renderError}
                       horizontalConstraint={16}
                       isRequired
                     />
-                    
+
                     <TextField
                       name="phoneNumber"
                       value={formikProps.values.phoneNumber}
                       onChange={formikProps.handleChange}
                       onBlur={formikProps.handleBlur}
                       title={intl.formatMessage(messages.phoneNumber)}
-                      errors={formikProps.errors.phoneNumber as unknown as TFieldErrors}
+                      errors={
+                        formikProps.errors
+                          .phoneNumber as unknown as TFieldErrors
+                      }
                       touched={formikProps.touched.phoneNumber}
                       renderError={renderError}
                       horizontalConstraint={16}
                     />
-                    
+
                     <div className={styles.buttonsContainer}>
                       <PrimaryButton
                         label={intl.formatMessage(messages.submit)}
@@ -442,4 +515,4 @@ const OnboardSeller: React.FC = () => {
   );
 };
 
-export default OnboardSeller; 
+export default OnboardSeller;

@@ -1,1 +1,1 @@
-export { default } from './use-merchant-center-management'; 
+export { default } from './use-merchant-center-management';

@@ -1726,7 +1726,26 @@
     "@babel/runtime-corejs3" "^7.20.13"
     "@emotion/react" "^11.10.5"
 
-"@commercetools-uikit/async-select-input@20.0.0":
+"@commercetools-uikit/async-select-field@^20.0.0":
+  version "20.0.0"
+  resolved "https://registry.yarnpkg.com/@commercetools-uikit/async-select-field/-/async-select-field-20.0.0.tgz#7b6796825706abbb1feda4dbda21f95271b11510"
+  integrity sha512-87iMX/3VROeKHiHIclgyfGpsa1XN5SOz6FARlomHBm57U/krr+Uq/08zTKRJbSHRIZMv2LIO1Oswjru/iLxC7Q==
+  dependencies:
+    "@babel/runtime" "^7.20.13"
+    "@babel/runtime-corejs3" "^7.20.13"
+    "@commercetools-uikit/async-select-input" "20.0.0"
+    "@commercetools-uikit/constraints" "20.0.0"
+    "@commercetools-uikit/design-system" "20.0.0"
+    "@commercetools-uikit/field-errors" "20.0.0"
+    "@commercetools-uikit/field-label" "20.0.0"
+    "@commercetools-uikit/field-warnings" "20.0.0"
+    "@commercetools-uikit/spacings" "20.0.0"
+    "@commercetools-uikit/utils" "20.0.0"
+    "@emotion/react" "^11.10.5"
+    "@emotion/styled" "^11.10.5"
+    react-intl "^7.1.4"
+
+"@commercetools-uikit/async-select-input@20.0.0", "@commercetools-uikit/async-select-input@^20.0.0":
   version "20.0.0"
   resolved "https://registry.yarnpkg.com/@commercetools-uikit/async-select-input/-/async-select-input-20.0.0.tgz#033ca16e786b2106fa8a6677193448d8cdb3bb2b"
   integrity sha512-HB1Aavy8kFmXpzJM5YihOB7XVQ5S9cc/BKk27vwNmo5efp28Y0T4UZysYWjXdYGvRtFFwq7mICR8PNCbLnv5jw==
@@ -2228,6 +2247,42 @@
     "@emotion/react" "^11.10.5"
     "@emotion/styled" "^11.10.5"
     react-is "19.0.0"
+
+"@commercetools-uikit/search-select-field@^20.0.0":
+  version "20.0.0"
+  resolved "https://registry.yarnpkg.com/@commercetools-uikit/search-select-field/-/search-select-field-20.0.0.tgz#92df454a2878c56c0f1b40535abb7da543ae3513"
+  integrity sha512-YuovEmaD9U1lYLSlTF9dLQnfjx4ZaDrAtY18aRrYEuY6dAB07CzS2yryqj0I3xiLvZ5ca99ghmj/JoUnsaGteg==
+  dependencies:
+    "@babel/runtime" "^7.20.13"
+    "@babel/runtime-corejs3" "^7.20.13"
+    "@commercetools-uikit/constraints" "20.0.0"
+    "@commercetools-uikit/design-system" "20.0.0"
+    "@commercetools-uikit/field-errors" "20.0.0"
+    "@commercetools-uikit/field-label" "20.0.0"
+    "@commercetools-uikit/field-warnings" "20.0.0"
+    "@commercetools-uikit/hooks" "20.0.0"
+    "@commercetools-uikit/search-select-input" "20.0.0"
+    "@commercetools-uikit/spacings" "20.0.0"
+    "@commercetools-uikit/utils" "20.0.0"
+    "@emotion/react" "^11.10.5"
+    "@emotion/styled" "^11.10.5"
+    react-intl "^7.1.4"
+
+"@commercetools-uikit/search-select-input@20.0.0":
+  version "20.0.0"
+  resolved "https://registry.yarnpkg.com/@commercetools-uikit/search-select-input/-/search-select-input-20.0.0.tgz#bf21c364b9223ff5f69e2c251b62436b28a4ddf9"
+  integrity sha512-1w8zxl50QQHlPVuNcDXEh5+N7I+tvTlzkrnTSe00pVc+pBKXhsqoD4A7AaN+2Rre6QhsKmztPFGLWyo5vantAQ==
+  dependencies:
+    "@babel/runtime" "^7.20.13"
+    "@babel/runtime-corejs3" "^7.20.13"
+    "@commercetools-uikit/async-select-input" "20.0.0"
+    "@commercetools-uikit/design-system" "20.0.0"
+    "@commercetools-uikit/select-utils" "20.0.0"
+    "@commercetools-uikit/spacings" "20.0.0"
+    "@commercetools-uikit/text" "20.0.0"
+    "@commercetools-uikit/utils" "20.0.0"
+    "@emotion/react" "^11.10.5"
+    "@emotion/styled" "^11.10.5"
 
 "@commercetools-uikit/secondary-button@20.0.0":
   version "20.0.0"

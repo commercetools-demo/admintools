@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
-import { useMcMutation, useMcQuery } from '@commercetools-frontend/application-shell';
+import {
+  useMcMutation,
+  useMcQuery,
+} from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
 
@@ -106,10 +109,13 @@ export interface UseCustomerManagementResult {
   // State
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   createCustomer: (draft: CustomerDraft) => Promise<Customer | null>;
-  createEmailVerificationToken: (customerId: string, ttlMinutes?: number) => Promise<string | null>;
+  createEmailVerificationToken: (
+    customerId: string,
+    ttlMinutes?: number
+  ) => Promise<string | null>;
   confirmEmail: (tokenValue: string) => Promise<Customer | null>;
   findCustomerByEmail: (email: string) => Promise<CustomerSearchResult | null>;
   clearError: () => void;
@@ -126,11 +132,14 @@ export const useCustomerManagement = (): UseCustomerManagementResult => {
     },
   });
 
-  const [createEmailVerificationTokenMutation] = useMcMutation(CREATE_EMAIL_VERIFICATION_TOKEN, {
-    context: {
-      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-    },
-  });
+  const [createEmailVerificationTokenMutation] = useMcMutation(
+    CREATE_EMAIL_VERIFICATION_TOKEN,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+    }
+  );
 
   const [confirmEmailMutation] = useMcMutation(CONFIRM_EMAIL, {
     context: {
@@ -151,14 +160,15 @@ export const useCustomerManagement = (): UseCustomerManagementResult => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data } = await createCustomerMutation({
         variables: { draft },
       });
-      
+
       return (data as any)?.customerSignUp?.customer || null;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create customer';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to create customer';
       setError(errorMessage);
       throw err;
     } finally {
@@ -167,18 +177,24 @@ export const useCustomerManagement = (): UseCustomerManagementResult => {
   };
 
   // Create email verification token function
-  const createEmailVerificationToken = async (customerId: string, ttlMinutes: number = 10) => {
+  const createEmailVerificationToken = async (
+    customerId: string,
+    ttlMinutes: number = 10
+  ) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data } = await createEmailVerificationTokenMutation({
         variables: { id: customerId, ttlMinutes },
       });
-      
+
       return (data as any)?.customerCreateEmailVerificationToken?.value || null;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create email verification token';
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Failed to create email verification token';
       setError(errorMessage);
       throw err;
     } finally {
@@ -191,14 +207,15 @@ export const useCustomerManagement = (): UseCustomerManagementResult => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data } = await confirmEmailMutation({
         variables: { tokenValue },
       });
-      
+
       return (data as any)?.customerConfirmEmail || null;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to confirm email';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to confirm email';
       setError(errorMessage);
       throw err;
     } finally {
@@ -207,24 +224,28 @@ export const useCustomerManagement = (): UseCustomerManagementResult => {
   };
 
   // Find customer by email function
-  const findCustomerByEmail = useCallback(async (email: string): Promise<CustomerSearchResult | null> => {
-    try {
-      setLoading(true);
-      setError(null);
+  const findCustomerByEmail = useCallback(
+    async (email: string): Promise<CustomerSearchResult | null> => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const { data } = await findCustomerQuery({
-        where: `email="${email}"`,
-      });
+        const { data } = await findCustomerQuery({
+          where: `email="${email}"`,
+        });
 
-      return (data as any)?.customers || null;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to get customer';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [findCustomerQuery]);
+        return (data as any)?.customers || null;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to get customer';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [findCustomerQuery]
+  );
 
   // Clear error function
   const clearError = useCallback(() => {
@@ -242,4 +263,4 @@ export const useCustomerManagement = (): UseCustomerManagementResult => {
   };
 };
 
-export default useCustomerManagement; 
+export default useCustomerManagement;

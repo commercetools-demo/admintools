@@ -4,6 +4,7 @@ import Spacings from '@commercetools-uikit/spacings';
 import AdminDashboard from './components/admin-dashboard';
 import OnboardSeller from './components/onboard-seller';
 import ManageInvites from './components/manage-invites';
+import ManageSellertools from './components/manage-sellertools';
 
 type ApplicationRoutesProps = {
   children?: ReactNode;
@@ -30,6 +31,9 @@ const ApplicationRoutes = (_props: ApplicationRoutesProps) => {
         </Route>
         <Route path={`${match.path}/manage-invites`}>
           <ManageInvites />
+        </Route>
+        <Route path={`${match.path}/manage-sellertools`}>
+          <ManageSellertools />
         </Route>
         <Route>
           <AdminDashboard />

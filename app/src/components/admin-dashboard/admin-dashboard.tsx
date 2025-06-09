@@ -1,7 +1,7 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
 import { useHistory, useRouteMatch } from 'react-router-dom';
-import { UsersIcon, MailIcon } from '@commercetools-uikit/icons';
+import { UsersIcon, MailIcon, GearIcon } from '@commercetools-uikit/icons';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import messages from './messages';
@@ -17,9 +17,7 @@ const DashboardCard = (props: TDashboardCardProps) => (
   <div className={styles.dashboardCard} onClick={props.onClick}>
     <Spacings.Stack alignItems="center" scale="m">
       <div className={styles.iconContainer}>
-        <div className={styles.iconWrapper}>
-          {props.icon}
-        </div>
+        <div className={styles.iconWrapper}>{props.icon}</div>
       </div>
       <Text.Headline as="h3">{props.title}</Text.Headline>
     </Spacings.Stack>
@@ -40,6 +38,10 @@ const AdminDashboard = () => {
     history.push(`${match.url}/manage-invites`);
   };
 
+  const handleManageSellertools = () => {
+    history.push(`${match.url}/manage-sellertools`);
+  };
+
   return (
     <div className={styles.dashboardContainer}>
       <div className={styles.headerContainer}>
@@ -58,10 +60,15 @@ const AdminDashboard = () => {
           icon={<MailIcon size="big" color="surface" />}
           onClick={handleManageInvites}
         />
+        <DashboardCard
+          title="Manage Sellertools"
+          icon={<GearIcon size="big" color="surface" />}
+          onClick={handleManageSellertools}
+        />
       </div>
     </div>
   );
 };
 AdminDashboard.displayName = 'AdminDashboard';
 
-export default AdminDashboard; 
+export default AdminDashboard;

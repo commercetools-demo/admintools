@@ -7,7 +7,8 @@ export default defineMessages({
   },
   subtitle: {
     id: 'OnboardSeller.subtitle',
-    defaultMessage: 'Create a new seller account with business unit, store, and distribution channel',
+    defaultMessage:
+      'Create a new seller account with business unit, store, and distribution channel',
   },
   backToAdmin: {
     id: 'OnboardSeller.backToAdmin',
@@ -61,4 +62,4 @@ export default defineMessages({
     id: 'OnboardSeller.invitationFailed',
     defaultMessage: 'Seller created but application invitation failed',
   },
-}); 
+});

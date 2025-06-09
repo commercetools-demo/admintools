@@ -9,4 +9,4 @@ export default defineMessages({
     id: 'AdminDashboard.onboardSeller',
     defaultMessage: 'Onboard Seller',
   },
-}); 
+});

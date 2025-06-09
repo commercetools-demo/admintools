@@ -144,7 +144,9 @@ export interface BusinessUnitSearchResult {
 }
 
 export interface UseBusinessUnitManagement {
-  createBusinessUnit: (draft: BusinessUnitDraft) => Promise<BusinessUnit | null>;
+  createBusinessUnit: (
+    draft: BusinessUnitDraft
+  ) => Promise<BusinessUnit | null>;
   loading: boolean;
   error: ApolloError | null;
 }
@@ -160,24 +162,27 @@ export const useBusinessUnitManagement = (): UseBusinessUnitManagement => {
   });
 
   // Create business unit function with associates and stores in single mutation
-  const createBusinessUnit = useCallback(async (draft: BusinessUnitDraft): Promise<BusinessUnit | null> => {
-    try {
-      setLoading(true);
-      setError(null);
+  const createBusinessUnit = useCallback(
+    async (draft: BusinessUnitDraft): Promise<BusinessUnit | null> => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const { data } = await createBusinessUnitMutation({
-        variables: { draft },
-      });
+        const { data } = await createBusinessUnitMutation({
+          variables: { draft },
+        });
 
-      return (data as any)?.createBusinessUnit || null;
-    } catch (err) {
-      const apolloError = err as ApolloError;
-      setError(apolloError);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [createBusinessUnitMutation]);
+        return (data as any)?.createBusinessUnit || null;
+      } catch (err) {
+        const apolloError = err as ApolloError;
+        setError(apolloError);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createBusinessUnitMutation]
+  );
 
   return {
     createBusinessUnit,
@@ -186,4 +191,4 @@ export const useBusinessUnitManagement = (): UseBusinessUnitManagement => {
   };
 };
 
-export default useBusinessUnitManagement; 
+export default useBusinessUnitManagement;

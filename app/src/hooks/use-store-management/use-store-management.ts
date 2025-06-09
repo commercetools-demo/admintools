@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
-import { useMcMutation, useMcQuery } from '@commercetools-frontend/application-shell';
+import {
+  useMcMutation,
+  useMcQuery,
+} from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import type { ApolloError } from '@apollo/client';
 import gql from 'graphql-tag';
@@ -55,7 +58,11 @@ const CREATE_PRODUCT_SELECTION = gql`
 `;
 
 const UPDATE_STORE = gql`
-  mutation UpdateStore($id: String!, $version: Long!, $actions: [StoreUpdateAction!]!) {
+  mutation UpdateStore(
+    $id: String!
+    $version: Long!
+    $actions: [StoreUpdateAction!]!
+  ) {
     updateStore(id: $id, version: $version, actions: $actions) {
       id
       version
@@ -140,7 +147,13 @@ export interface ChannelDraft {
     locale: string;
     value: string;
   }>;
-  roles: Array<'InventorySupply' | 'ProductDistribution' | 'OrderExport' | 'OrderImport' | 'Primary'>;
+  roles: Array<
+    | 'InventorySupply'
+    | 'ProductDistribution'
+    | 'OrderExport'
+    | 'OrderImport'
+    | 'Primary'
+  >;
 }
 
 export interface CreateProductSelectionDraft {
@@ -211,11 +224,14 @@ export interface UseStoreManagementResult {
   // State
   loading: boolean;
   error: ApolloError | null;
-  
+
   // Actions
   createStore: (draft: CreateStore) => Promise<Store | null>;
   createChannel: (draft: ChannelDraft) => Promise<Channel | null>;
-  createProductSelection: (draft: CreateProductSelectionDraft, storeKey: string) => Promise<ProductSelection | null>;
+  createProductSelection: (
+    draft: CreateProductSelectionDraft,
+    storeKey: string
+  ) => Promise<ProductSelection | null>;
   findStores: (where?: string) => Promise<StoreSearchResult | null>;
   findChannels: (where?: string) => Promise<ChannelSearchResult | null>;
   clearError: () => void;
@@ -238,11 +254,14 @@ const useStoreManagement = (): UseStoreManagementResult => {
     },
   });
 
-  const [createProductSelectionMutation] = useMcMutation(CREATE_PRODUCT_SELECTION, {
-    context: {
-      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-    },
-  });
+  const [createProductSelectionMutation] = useMcMutation(
+    CREATE_PRODUCT_SELECTION,
+    {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+    }
+  );
 
   const [updateStoreMutation] = useMcMutation(UPDATE_STORE, {
     context: {
@@ -266,141 +285,163 @@ const useStoreManagement = (): UseStoreManagementResult => {
   });
 
   // Create store function
-  const createStore = useCallback(async (draft: CreateStore): Promise<Store | null> => {
-    try {
-      setLoading(true);
-      setError(null);
+  const createStore = useCallback(
+    async (draft: CreateStore): Promise<Store | null> => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const { data } = await createStoreMutation({
-        variables: { draft },
-      });
+        const { data } = await createStoreMutation({
+          variables: { draft },
+        });
 
-      return (data as any)?.createStore || null;
-    } catch (err) {
-      const apolloError = err as ApolloError;
-      setError(apolloError);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [createStoreMutation]);
+        return (data as any)?.createStore || null;
+      } catch (err) {
+        const apolloError = err as ApolloError;
+        setError(apolloError);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createStoreMutation]
+  );
 
   // Create channel function
-  const createChannel = useCallback(async (draft: ChannelDraft): Promise<Channel | null> => {
-    try {
-      setLoading(true);
-      setError(null);
+  const createChannel = useCallback(
+    async (draft: ChannelDraft): Promise<Channel | null> => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const { data } = await createChannelMutation({
-        variables: { draft },
-      });
+        const { data } = await createChannelMutation({
+          variables: { draft },
+        });
 
-      return (data as any)?.createChannel || null;
-    } catch (err) {
-      const apolloError = err as ApolloError;
-      setError(apolloError);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [createChannelMutation]);
+        return (data as any)?.createChannel || null;
+      } catch (err) {
+        const apolloError = err as ApolloError;
+        setError(apolloError);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createChannelMutation]
+  );
 
   // Create product selection function
-  const createProductSelection = useCallback(async (draft: CreateProductSelectionDraft, storeKey: string): Promise<ProductSelection | null> => {
-    try {
-      setLoading(true);
-      setError(null);
+  const createProductSelection = useCallback(
+    async (
+      draft: CreateProductSelectionDraft,
+      storeKey: string
+    ): Promise<ProductSelection | null> => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      // Step 1: Create the product selection
-      const { data: createData } = await createProductSelectionMutation({
-        variables: { draft },
-      });
+        // Step 1: Create the product selection
+        const { data: createData } = await createProductSelectionMutation({
+          variables: { draft },
+        });
 
-      const productSelection = (createData as any)?.createProductSelection;
-      if (!productSelection) {
-        throw new Error('Failed to create product selection');
-      }
+        const productSelection = (createData as any)?.createProductSelection;
+        if (!productSelection) {
+          throw new Error('Failed to create product selection');
+        }
 
-      // Step 2: Find the store to get its current version
-      const storeResult = await findStoresQuery({
-        where: `key="${storeKey}"`,
-      });
+        // Step 2: Find the store to get its current version
+        const storeResult = await findStoresQuery({
+          where: `key="${storeKey}"`,
+        });
 
-      const stores = (storeResult.data as any)?.stores?.results;
-      if (!stores || stores.length === 0) {
-        throw new Error(`Store with key "${storeKey}" not found`);
-      }
+        const stores = (storeResult.data as any)?.stores?.results;
+        if (!stores || stores.length === 0) {
+          throw new Error(`Store with key "${storeKey}" not found`);
+        }
 
-      const store = stores[0];
+        const store = stores[0];
 
-      // Step 3: Update the store to set the product selection
-      await updateStoreMutation({
-        variables: {
-          id: store.id,
-          version: store.version,
-          actions: [{
-            setProductSelections: {
-              productSelections: [{
-                productSelection: {
-                  typeId: 'product-selection',
-                  key: productSelection.key,
+        // Step 3: Update the store to set the product selection
+        await updateStoreMutation({
+          variables: {
+            id: store.id,
+            version: store.version,
+            actions: [
+              {
+                setProductSelections: {
+                  productSelections: [
+                    {
+                      productSelection: {
+                        typeId: 'product-selection',
+                        key: productSelection.key,
+                      },
+                      active: true,
+                    },
+                  ],
                 },
-                active: true,
-              }],
-            },
-          }],
-        },
-      });
+              },
+            ],
+          },
+        });
 
-      return productSelection;
-    } catch (err) {
-      const apolloError = err as ApolloError;
-      setError(apolloError);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [createProductSelectionMutation, findStoresQuery, updateStoreMutation]);
+        return productSelection;
+      } catch (err) {
+        const apolloError = err as ApolloError;
+        setError(apolloError);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createProductSelectionMutation, findStoresQuery, updateStoreMutation]
+  );
 
   // Find stores function
-  const findStores = useCallback(async (where?: string): Promise<StoreSearchResult | null> => {
-    try {
-      setLoading(true);
-      setError(null);
+  const findStores = useCallback(
+    async (where?: string): Promise<StoreSearchResult | null> => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const { data } = await findStoresQuery({
-        where,
-      });
+        const { data } = await findStoresQuery({
+          where,
+        });
 
-      return (data as any)?.stores || null;
-    } catch (err) {
-      const apolloError = err as ApolloError;
-      setError(apolloError);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [findStoresQuery]);
+        return (data as any)?.stores || null;
+      } catch (err) {
+        const apolloError = err as ApolloError;
+        setError(apolloError);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [findStoresQuery]
+  );
 
   // Find channels function
-  const findChannels = useCallback(async (where?: string): Promise<ChannelSearchResult | null> => {
-    try {
-      setLoading(true);
-      setError(null);
+  const findChannels = useCallback(
+    async (where?: string): Promise<ChannelSearchResult | null> => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const { data } = await findChannelsQuery({
-        where,
-      });
+        const { data } = await findChannelsQuery({
+          where,
+        });
 
-      return (data as any)?.channels || null;
-    } catch (err) {
-      const apolloError = err as ApolloError;
-      setError(apolloError);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [findChannelsQuery]);
+        return (data as any)?.channels || null;
+      } catch (err) {
+        const apolloError = err as ApolloError;
+        setError(apolloError);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [findChannelsQuery]
+  );
 
   // Clear error function
   const clearError = useCallback(() => {
@@ -419,4 +460,4 @@ const useStoreManagement = (): UseStoreManagementResult => {
   };
 };
 
-export default useStoreManagement; 
+export default useStoreManagement;
