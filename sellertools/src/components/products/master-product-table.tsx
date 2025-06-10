@@ -9,11 +9,10 @@ import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import { useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useAuthContext } from '../../contexts/auth-context';
-import useStoreProducts from '../../hooks/use-store-products/use-store-products';
+import useStoreProducts, { ProductData } from '../../hooks/use-store-products/use-store-products';
 import logger from '../../utils/logger';
 import messages from './messages';
-import { CheckboxCell, ImageCell, ProductData } from './products';
+import { CheckboxCell, ImageCell } from './products';
 import styles from './products.module.css';
 import { useProductWrapper } from './store-products-wrapper';
 
@@ -23,7 +22,6 @@ const MasterProductTable = () => {
   const latestSearchQueryRef = useRef<string>('');
 
   const { fetchUserStoreProducts } = useProductWrapper();
-  const { storeKey } = useAuthContext();
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,6 +66,12 @@ const MasterProductTable = () => {
       key: 'image',
       label: 'Image',
       renderItem: (item: ProductData) => <ImageCell value={item.image} />,
+      width: '120px',
+    },
+    {
+      key: 'highlight',
+      label: 'Highlight',
+      renderItem: (item: ProductData) => <div>{item.isHighlighted ? 'true' : 'false'}</div>,
       width: '120px',
     },
     { key: 'name', label: 'Product Name', width: '50%' },
@@ -258,7 +262,6 @@ const MasterProductTable = () => {
                   setIsAddingProducts(true);
                   try {
                     const success = await addProductsToStore(
-                      storeKey!,
                       selectedProducts
                     );
 

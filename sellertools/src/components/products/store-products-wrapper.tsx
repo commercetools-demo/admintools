@@ -11,7 +11,7 @@ import React, {
 } from 'react';
 import useStoreProducts from '../../hooks/use-store-products/use-store-products';
 import logger from '../../utils/logger';
-import { ProductData } from './products';
+import { ProductData } from '../../hooks/use-store-products/use-store-products';
 
 interface ProductsContextType {
   fetchUserStoreProducts: () => Promise<void>;
@@ -122,7 +122,6 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
     setIsRemovingProducts(true);
     try {
       const success = await removeProductsFromStore(
-        storeKey!,
         selectedStoreProducts
       );
 

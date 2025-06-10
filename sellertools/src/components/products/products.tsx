@@ -20,14 +20,6 @@ interface ProductsProps {
   linkToWelcome: string;
 }
 
-// Product type definition
-export interface ProductData {
-  id: string;
-  name: string;
-  image: string;
-  sku: string;
-  isSelected?: boolean;
-}
 
 // Custom cell renderer for the image column
 export const ImageCell = ({ value }: { value: string }) => {
