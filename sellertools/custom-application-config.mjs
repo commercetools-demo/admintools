@@ -18,7 +18,6 @@ const config = {
   },
   additionalEnv: {
     CMS_API_URL: '${env:CMS_API_URL}',
-    SELLER_CUSTOMERGROUP_KEY: '${env:SELLER_CUSTOMERGROUP_KEY}',
     JWT_TOKEN: '${env:JWT_TOKEN}',
   },
   headers: {

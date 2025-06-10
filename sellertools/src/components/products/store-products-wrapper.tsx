@@ -4,6 +4,7 @@ import React, {
   Dispatch,
   ReactNode,
   SetStateAction,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -29,6 +30,7 @@ interface ProductsContextType {
   handleRemoveProductsFromStore: () => Promise<void>;
   page: TState;
   perPage: TState;
+  total: number;
 }
 
 const StoreProductsContext = createContext<ProductsContextType | null>(null);
@@ -64,14 +66,19 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
   const [isRemovingProducts, setIsRemovingProducts] = useState(false);
   const [storeProducts, setStoreProducts] = useState<ProductData[]>([]);
   const [isStoreProductsLoading, setIsStoreProductsLoading] = useState(false);
+  const [total, setTotal] = useState(0);
 
   const { page, perPage } = usePaginationState();
-  const { fetchStoreProducts, removeProductsFromStore } = useStoreProducts({
+  const {
+    fetchUserStoreProducts: fetch,
+    removeProductsFromStore,
+    searchStoreProducts,
+  } = useStoreProducts({
     page,
     perPage,
   });
 
-  const handleStoreSearch = () => {
+  const handleStoreSearch = async () => {
     if (!storeSearchQuery.trim()) {
       setFilteredStoreProducts(storeProducts);
       return;
@@ -81,21 +88,17 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
 
     try {
       // Simple client-side filtering for store products
-      const searchTermLower = storeSearchQuery.toLowerCase();
-      logger.info(`Filtering store products with query: "${searchTermLower}"`);
+      logger.info(`Filtering store products with query: "${storeSearchQuery}"`);
 
-      const filtered = storeProducts.filter(
-        (product) =>
-          product.name.toLowerCase().includes(searchTermLower) ||
-          product.sku.toLowerCase().includes(searchTermLower)
-      );
+      const filtered = await searchStoreProducts(storeSearchQuery);
 
       logger.info(
-        `Found ${filtered.length} store products matching "${storeSearchQuery}"`
+        `Found ${filtered.results.length} store products matching "${storeSearchQuery}"`
       );
 
       // Update store products with filtered results
-      setFilteredStoreProducts(filtered);
+      setFilteredStoreProducts(filtered.results);
+      setTotal(filtered.total);
     } catch (error) {
       logger.error('Error during store product filtering:', error);
     } finally {
@@ -135,7 +138,7 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
       setIsRemovingProducts(false);
     }
   };
-  const fetchUserStoreProducts = async () => {
+  const fetchUserStoreProducts = useCallback(async () => {
     if (!storeKey) return;
 
     setIsStoreProductsLoading(true);
@@ -143,16 +146,18 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
 
     try {
       logger.info(`Fetching products for user store: ${storeKey}`);
-      const result = await fetchStoreProducts(storeKey);
+      const result = await fetch();
 
       if (result) {
         logger.info(
-          `Fetched ${result.length} products from user store: ${storeKey}`
+          `Fetched ${result.results.length} products from user store: ${storeKey}`
         );
-        setStoreProducts(result);
+        setStoreProducts(result.results);
+        setTotal(result.total);
       } else {
         logger.info(`No products returned for user store: ${storeKey}`);
         setStoreProducts([]);
+        setTotal(0);
       }
     } catch (err) {
       logger.error(`Error fetching products for store ${storeKey}:`, err);
@@ -164,11 +169,11 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
     } finally {
       setIsStoreProductsLoading(false);
     }
-  };
+  }, [fetch, storeKey]);
 
   useEffect(() => {
     fetchUserStoreProducts();
-  }, [storeKey, fetchStoreProducts]);
+  }, [fetchUserStoreProducts]);
 
   useEffect(() => {
     setStoreProducts((prev) =>
@@ -200,6 +205,7 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
     handleRemoveProductsFromStore,
     page,
     perPage,
+    total,
   };
 
   return (

@@ -5,9 +5,10 @@ import { signWithJose } from './utils';
 import { useAuthContext } from '../../contexts/auth-context';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
 import axios from 'axios';
-
-const SHARED_CONTAINER = 'temp-container';
-const SHARED_KEY = 'chat-app-deployed-url';
+import {
+  AI_ASSISTANT_DEPLOYED_URL_KEY,
+  SHARED_CONTAINER,
+} from '../../constants';
 
 const AIAssistantWrapper = () => {
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -22,8 +23,10 @@ const AIAssistantWrapper = () => {
 
   const fetchDeployedUrl = useCallback(async () => {
     try {
-      const deployedUrlResult = await getCustomObject(SHARED_KEY);
-      setDeployedUrl(deployedUrlResult.value);
+      const deployedUrlResult = await getCustomObject(
+        AI_ASSISTANT_DEPLOYED_URL_KEY
+      );
+      setDeployedUrl(deployedUrlResult?.value);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching deployed URL:', error);

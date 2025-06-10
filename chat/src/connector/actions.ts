@@ -1,7 +1,7 @@
 import { ByProjectKeyRequestBuilder } from '@commercetools/platform-sdk/dist/declarations/src/generated/client/by-project-key-request-builder';
 
-const SHARED_KEY = 'chat-app-deployed-url';
-const SHARED_CONTAINER = 'temp-container';
+export const SHARED_CONTAINER = 'shared-sellertools-container';
+export const AI_ASSISTANT_DEPLOYED_URL_KEY = 'chat-app-deployed-url';
 
 export async function createCustomObject(
   apiRoot: ByProjectKeyRequestBuilder,
@@ -11,7 +11,7 @@ export async function createCustomObject(
     .customObjects()
     .post({
       body: {
-        key: SHARED_KEY,
+        key: AI_ASSISTANT_DEPLOYED_URL_KEY,
         container: SHARED_CONTAINER,
         value: applicationUrl,
       },

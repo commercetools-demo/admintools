@@ -4,3 +4,9 @@ import { entryPointUriPathToPermissionKeys } from '@commercetools-frontend/appli
 export const entryPointUriPath = 'sellertools';
 
 export const PERMISSIONS = entryPointUriPathToPermissionKeys(entryPointUriPath);
+
+export const SHARED_CONTAINER = 'shared-sellertools-container';
+export const AI_ASSISTANT_DEPLOYED_URL_KEY = 'chat-app-deployed-url';
+export const PRODUCT_SELECTION_KEY = 'main-catalog-product-selection';
+export const CUSTOMER_GROUP_KEY = 'seller-customer-group';
+export const STORE_KEY = 'main-catalog-store';

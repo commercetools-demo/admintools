@@ -1,18 +1,18 @@
 import DataTable from '@commercetools-uikit/data-table';
-import { usePaginationState } from '@commercetools-uikit/hooks';
 import { RefreshIcon } from '@commercetools-uikit/icons';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import { ErrorMessage } from '@commercetools-uikit/messages';
 import PrimaryButton from '@commercetools-uikit/primary-button';
+import SearchTextInput from '@commercetools-uikit/search-text-input';
 import SecondaryButton from '@commercetools-uikit/secondary-button';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
-import SearchTextInput from '@commercetools-uikit/search-text-input';
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuthContext } from '../../contexts/auth-context';
 import usePriceManagement from '../../hooks/use-price-management/use-price-management';
-import useStoreProducts from '../../hooks/use-store-products/use-store-products';
 import styles from './prices.module.css';
+import { Pagination } from '@commercetools-uikit/pagination';
+import { usePaginationState } from '@commercetools-uikit/hooks';
 interface PricesProps {
   linkToWelcome: string;
   onBack: () => void;
@@ -135,18 +135,22 @@ const PriceInputCell = ({
 };
 
 const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
-  const { storeKey } = useAuthContext();
+  const { storeKey, productSelectionId } = useAuthContext();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [products, setProducts] = useState<ProductPriceData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [totalProducts, setTotalProducts] = useState(0);
+  const { page, perPage } = usePaginationState();
 
   // Ref for debouncing search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { fetchProductsWithPrices, updateProductPrice } = usePriceManagement();
-  const { searchProducts } = useStoreProducts({});
+  const { fetchProductsWithPrices, updateProductPrice } = usePriceManagement({
+    page,
+    perPage,
+  });
 
   // Clean up the search timeout when component unmounts
   useEffect(() => {
@@ -159,28 +163,28 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
 
   const fetchProducts = async () => {
     try {
-      const result = await fetchProductsWithPrices(storeKey!);
-      setProducts(result);
+      const result = await fetchProductsWithPrices();
+      setProducts(result.results);
+      setTotalProducts(result.total);
     } catch (err) {
       setError(
         err instanceof Error
           ? err
           : new Error('Unknown error fetching products')
       );
+      setTotalProducts(0);
     } finally {
       setIsInitialLoading(false);
     }
   };
 
   useEffect(() => {
-    if (storeKey) {
-      console.log(
-        `Store key changed to "${storeKey}" - fetching products for this store`
-      );
-      setIsInitialLoading(true);
-      fetchProducts();
+    if (!productSelectionId) {
+      return;
     }
-  }, [storeKey]);
+    setIsInitialLoading(true);
+    fetchProducts();
+  }, [productSelectionId]);
 
   const handlePriceChange = async (
     productId: string,
@@ -218,21 +222,14 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
     setError(null);
 
     try {
-      const searchResults = await searchProducts(query);
+      const result = await fetchProductsWithPrices(query);
 
-      if (searchResults.length > 0) {
-        // Fetch detailed price information for the search results
-        const result = await fetchProductsWithPrices(storeKey!);
-
-        // Filter the price data to only include products that match our search results
-        const searchResultIds = searchResults.map((product) => product.id);
-        const filteredProducts = result.filter((product) =>
-          searchResultIds.includes(product.id)
-        );
-
-        setProducts(filteredProducts);
+      if (result.results.length > 0) {
+        setProducts(result.results);
+        setTotalProducts(result.total);
       } else {
         setProducts([]);
+        setTotalProducts(0);
       }
     } catch (err) {
       console.error('Error searching products:', err);
@@ -387,13 +384,13 @@ const Prices: React.FC<PricesProps> = ({ linkToWelcome, onBack }) => {
               maxHeight="70vh"
               maxWidth="100%"
             />
-            <div className={styles.tableFooter}>
-              <Text.Detail>
-                {searchQuery
-                  ? `${products.length} products found matching "${searchQuery}"`
-                  : `${products.length} products found`}
-              </Text.Detail>
-            </div>
+            <Pagination
+              page={page.value}
+              onPageChange={page.onChange}
+              perPage={perPage.value}
+              onPerPageChange={perPage.onChange}
+              totalItems={totalProducts}
+            />
           </div>
         )}
       </Spacings.Stack>

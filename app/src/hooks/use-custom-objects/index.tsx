@@ -6,15 +6,17 @@ import {
 } from '@commercetools-frontend/sdk';
 import { MC_API_PROXY_TARGETS } from '@commercetools-frontend/constants';
 import { useCallback } from 'react';
+import {
+  SHARED_CONTAINER,
+  PRODUCT_SELECTION_KEY,
+  CUSTOMER_GROUP_KEY,
+  STORE_KEY,
+} from '../../constants';
 
 interface CommercetoolsError {
   statusCode: number;
   message: string;
 }
-
-const SHARED_CONTAINER = 'shared-sellertools-container';
-const PRODUCT_SELECTION_KEY = 'main-catalog-product-selection';
-const CUSTOMER_GROUP_KEY = 'seller-customer-group';
 
 export const useCustomObject = () => {
   const context = useApplicationContext((context) => context);
@@ -80,10 +82,23 @@ export const useCustomObject = () => {
     return null;
   }, [getCustomObject]);
 
-  const setSelectedProductSelectionAndCustomerGroup = useCallback(
-    async (productSelection: string, customerGroup: string) => {
+  const getSelectedStore = useCallback(async () => {
+    const result = await getCustomObject(STORE_KEY);
+    if (result && result.value && typeof result.value === 'string') {
+      return result.value;
+    }
+    return null;
+  }, [getCustomObject]);
+
+  const setSellertoolsContext = useCallback(
+    async (
+      productSelection: string,
+      customerGroup: string,
+      storeKey: string
+    ) => {
       await setCustomObject(PRODUCT_SELECTION_KEY, productSelection);
       await setCustomObject(CUSTOMER_GROUP_KEY, customerGroup);
+      await setCustomObject(STORE_KEY, storeKey);
     },
     [setCustomObject]
   );
@@ -91,6 +106,7 @@ export const useCustomObject = () => {
   return {
     getSelectedProductSelection,
     getSelectedCustomerGroup,
-    setSelectedProductSelectionAndCustomerGroup,
+    getSelectedStore,
+    setSellertoolsContext,
   };
 };

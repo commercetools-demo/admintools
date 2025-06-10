@@ -30,9 +30,11 @@ export const useCustomObject = (container: string) => {
       } catch (error) {
         const apiError = error as CommercetoolsError;
         if (apiError.statusCode === 404) {
-          throw new Error(`Custom object not found with key: ${key}`);
+          console.warn(`Custom object not found with key: ${key}`);
+          return null;
         }
-        throw new Error(`Failed to get custom object: ${apiError.message}`);
+        console.warn(`Failed to get custom object: ${apiError.message}`);
+        return null;
       }
     },
     [context?.project?.key, dispatchAppsRead]

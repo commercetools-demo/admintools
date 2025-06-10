@@ -3,13 +3,22 @@ import {
   useMcQuery,
 } from '@commercetools-frontend/application-shell';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
-import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
+import {
+  GRAPHQL_TARGETS,
+  MC_API_PROXY_TARGETS,
+} from '@commercetools-frontend/constants';
 import { TState } from '@commercetools-uikit/hooks';
 import gql from 'graphql-tag';
 import { useCallback, useState } from 'react';
 import logger from '../../utils/logger';
-
-// Define GraphQL response types
+import { useAuthContext } from '../../contexts/auth-context';
+import { mapProductSearchResponse } from './mapper';
+import {
+  actions,
+  TSdkAction,
+  useAsyncDispatch,
+} from '@commercetools-frontend/sdk';
+import { ProductPagedSearchResponse } from '@commercetools/platform-sdk';
 interface ProductSelectionResponse {
   productSelection?: {
     id: string;
@@ -41,65 +50,6 @@ interface CreateProductResponse {
   };
 }
 
-// New interface for product search response
-interface ProductSearchResponse {
-  productProjectionSearch: {
-    results: Array<{
-      id: string;
-      nameAllLocales: Array<{
-        locale: string;
-        value: string;
-      }>;
-      masterVariant: {
-        id?: string;
-        sku?: string;
-        key?: string;
-        isMatchingVariant?: boolean;
-        images?: Array<{ url: string; label?: string }>;
-      };
-      variants?: Array<{
-        id: string;
-        sku?: string;
-        key?: string;
-        images?: Array<{ url: string; label?: string }>;
-      }>;
-    }>;
-  };
-}
-
-// Define SearchFilterInput type
-interface SearchFilterInput {
-  model: string;
-  value: any;
-}
-
-// GraphQL query to fetch products from product selection with dynamic key
-const GET_STORE_PRODUCTS_QUERY = gql`
-  query GetProductSelection($storeKey: String!, $limit: Int, $offset: Int) {
-    productSelection(key: $storeKey) {
-      id
-      productRefs(limit: $limit, offset: $offset) {
-        results {
-          product {
-            id
-            masterData {
-              current {
-                name(locale: "en-us")
-                masterVariant {
-                  images {
-                    url
-                  }
-                  sku
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
 // GraphQL mutation to update product selection
 const UPDATE_PRODUCT_SELECTION_MUTATION = gql`
   mutation UpdateProductSelection(
@@ -124,33 +74,55 @@ const GET_PRODUCT_SELECTION_BY_KEY = gql`
   }
 `;
 
-// GraphQL query to search for products
-const SEARCH_PRODUCTS_QUERY = gql`
-  query ProductSearch($text: String, $filter: [SearchFilterInput!]) {
-    productProjectionSearch(
-      markMatchingVariants: true
-      text: $text
-      filters: $filter
-      locale: "en-US"
-      limit: 20
-      fuzzy: true
-    ) {
-      results {
-        id
-        nameAllLocales {
-          locale
-          value
-        }
-        masterVariant {
-          sku
-          images {
-            url
-          }
-        }
-      }
-    }
+const buildSearchQuery = (
+  includeProductSelectionId: string,
+  excludeProductSelectionId?: string,
+  searchText?: string,
+  locale?: string
+) => {
+  const andExpressions = [];
+  if (includeProductSelectionId) {
+    andExpressions.push({
+      exact: {
+        field: 'productSelections',
+        value: includeProductSelectionId,
+      },
+    });
   }
-`;
+
+  if (excludeProductSelectionId) {
+    andExpressions.push({
+      not: [
+        {
+          exact: {
+            field: 'productSelections',
+            value: excludeProductSelectionId,
+          },
+        },
+      ],
+    });
+  }
+
+  if (searchText) {
+    andExpressions.push({
+      wildcard: {
+        field: 'name',
+        language: locale,
+        value: `*${searchText}*`,
+        caseInsensitive: true,
+      },
+    });
+  }
+
+  const query =
+    andExpressions.length > 1
+      ? {
+          and: andExpressions,
+        }
+      : andExpressions[0];
+
+  return query;
+};
 
 // GraphQL mutation to create a product
 const CREATE_PRODUCT_MUTATION = gql`
@@ -162,8 +134,15 @@ const CREATE_PRODUCT_MUTATION = gql`
   }
 `;
 
+export interface ProductSearchResult {
+  total: number;
+  offset: number;
+  limit: number;
+  results: ProductData[];
+}
+
 // Product type definition
-interface ProductData {
+export interface ProductData {
   id: string;
   name: string;
   image: string;
@@ -172,7 +151,16 @@ interface ProductData {
 
 // Define the hook interface
 interface UseStoreProductsResult {
-  fetchStoreProducts: (storeKey: string) => Promise<ProductData[]>;
+  executeProductSearchQuery: (params: {
+    includeProductSelectionId: string;
+    excludeProductSelectionId?: string;
+    limit?: number;
+    offset?: number;
+    locale?: string;
+    searchText?: string;
+  }) => Promise<ProductPagedSearchResponse | null>;
+  fetchUserStoreProducts: () => Promise<ProductSearchResult>;
+  fetchMasterStoreProducts: () => Promise<ProductSearchResult>;
   addProductsToStore: (
     storeKey: string,
     productIds: string[]
@@ -182,10 +170,8 @@ interface UseStoreProductsResult {
     productIds: string[]
   ) => Promise<boolean>;
   createProduct: (productDraft: any) => Promise<boolean>;
-  searchProducts: (
-    searchText: string,
-    filters?: SearchFilterInput[]
-  ) => Promise<ProductData[]>;
+  searchStoreProducts: (searchText: string) => Promise<ProductSearchResult>;
+  searchMasterProducts: (searchText: string) => Promise<ProductSearchResult>;
   loading: boolean;
   error: Error | null;
 }
@@ -199,16 +185,61 @@ const useStoreProducts = ({
 }): UseStoreProductsResult => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const { dataLocale } = useApplicationContext((context) => ({
+  const { dataLocale, project } = useApplicationContext((context) => ({
     dataLocale: context.dataLocale ?? 'en-us',
+    project: context.project,
   }));
+  const dispatchAppsRead = useAsyncDispatch<
+    TSdkAction,
+    ProductPagedSearchResponse
+  >();
 
-  const { refetch } = useMcQuery(GET_STORE_PRODUCTS_QUERY, {
-    context: {
-      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+  const { masterProductSelectionId, productSelectionId } = useAuthContext();
+
+  const executeProductSearchQuery = useCallback(
+    async ({
+      includeProductSelectionId,
+      excludeProductSelectionId,
+      limit = 20,
+      offset = 0,
+      locale = dataLocale,
+      searchText = '',
+    }: {
+      includeProductSelectionId: string;
+      excludeProductSelectionId?: string;
+      limit?: number;
+      offset?: number;
+      locale?: string;
+      searchText?: string;
+    }) => {
+      try {
+        const result = await dispatchAppsRead(
+          actions.post({
+            mcApiProxyTarget: MC_API_PROXY_TARGETS.COMMERCETOOLS_PLATFORM,
+            uri: `/${project?.key}/products/search`,
+            payload: {
+              query: buildSearchQuery(
+                includeProductSelectionId,
+                excludeProductSelectionId,
+                searchText,
+                locale
+              ),
+              productProjectionParameters: {},
+              limit,
+              offset,
+              locale,
+            },
+          })
+        );
+
+        return result;
+      } catch (error: any) {
+        console.warn(`Failed to execute graphql query: ${error.message}`);
+        return null;
+      }
     },
-    skip: true, // Skip initial query, we'll trigger it manually
-  });
+    [project?.key, dispatchAppsRead]
+  );
 
   const { refetch: getProductSelectionByKey } = useMcQuery(
     GET_PRODUCT_SELECTION_BY_KEY,
@@ -222,17 +253,6 @@ const useStoreProducts = ({
       skip: true, // Skip initial query, we'll trigger it manually
     }
   );
-
-  const { refetch: searchProducts } = useMcQuery(SEARCH_PRODUCTS_QUERY, {
-    variables: {
-      text: '',
-      filter: [] as SearchFilterInput[],
-    },
-    context: {
-      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-    },
-    skip: true, // Skip initial query, we'll trigger it manually
-  });
 
   const [updateProductSelection] = useMcMutation(
     UPDATE_PRODUCT_SELECTION_MUTATION,
@@ -250,78 +270,73 @@ const useStoreProducts = ({
   });
 
   const fetchStoreProducts = useCallback(
-    async (storeKey: string): Promise<ProductData[]> => {
+    async (
+      includeProductSelectionId: string,
+      excludeProductSelectionId?: string
+    ): Promise<ProductSearchResult> => {
       setLoading(true);
       setError(null);
 
       try {
-        logger.info(`Fetching products for store: ${storeKey}`);
-        const { data } = (await refetch({
-          storeKey,
+        logger.info(
+          `Fetching products for product selection: ${productSelectionId}`
+        );
+        const data = await executeProductSearchQuery({
+          includeProductSelectionId,
+          excludeProductSelectionId,
           limit: perPage?.value,
           offset: ((page?.value || 1) - 1) * (perPage?.value || 20),
-        })) as { data: ProductSelectionResponse };
+          locale: dataLocale,
+        });
 
-        if (
-          data?.productSelection?.productRefs?.results &&
-          Array.isArray(data.productSelection.productRefs.results)
-        ) {
-          const products = data.productSelection.productRefs.results.map(
-            (item, index) => {
-              const product = item.product;
-
-              // Get the image URL with better fallbacks
-              let imageUrl = 'https://via.placeholder.com/80';
-              const masterVariant = product.masterData.current.masterVariant;
-
-              if (masterVariant.images && masterVariant.images.length > 0) {
-                imageUrl = masterVariant.images[0].url;
-              }
-
-              // Add cache busting parameter to prevent browser caching issues
-              if (imageUrl && !imageUrl.includes('via.placeholder.com')) {
-                // Add a unique timestamp and random parameter to prevent caching
-                const cacheBuster = `_cb=${Date.now()}_${index}_${Math.random()
-                  .toString(36)
-                  .substring(2, 8)}`;
-                imageUrl = imageUrl.includes('?')
-                  ? `${imageUrl}&${cacheBuster}`
-                  : `${imageUrl}?${cacheBuster}`;
-              }
-
-              // Get the best SKU with fallbacks
-              const sku = masterVariant.sku || masterVariant.key || 'No SKU';
-
-              return {
-                id: product.id,
-                name: product.masterData.current.name || 'Unnamed product',
-                image: imageUrl,
-                sku,
-              };
-            }
+        if (data?.results && Array.isArray(data.results)) {
+          const products = data.results.map((item, index) =>
+            mapProductSearchResponse(item, index, dataLocale)
           );
 
           logger.info(
-            `Successfully fetched ${products.length} products for store ${storeKey}`
+            `Successfully fetched ${products.length} products for product selection ${productSelectionId}`
           );
-          return products;
+          return {
+            total: data.total,
+            offset: data.offset,
+            limit: data.limit,
+            results: products,
+          };
         }
 
-        logger.info(`No products found for store ${storeKey}`);
-        return [];
+        logger.info(
+          `No products found for product selection ${productSelectionId}`
+        );
+        return {
+          total: 0,
+          offset: 0,
+          limit: 0,
+          results: [],
+        };
       } catch (err) {
-        logger.error(`Error fetching products for store ${storeKey}:`, err);
+        logger.error(
+          `Error fetching products for product selection ${productSelectionId}:`,
+          err
+        );
         setError(
           err instanceof Error
             ? err
-            : new Error(`Unknown error loading products for store ${storeKey}`)
+            : new Error(
+                `Unknown error loading products for product selection ${productSelectionId}`
+              )
         );
-        return [];
+        return {
+          total: 0,
+          offset: 0,
+          limit: 0,
+          results: [],
+        };
       } finally {
         setLoading(false);
       }
     },
-    [dataLocale, refetch, perPage?.value, page?.value]
+    [dataLocale, executeProductSearchQuery, perPage?.value, page?.value]
   );
 
   const addProductsToStore = useCallback(
@@ -546,115 +561,50 @@ const useStoreProducts = ({
 
   const searchProductsFunc = useCallback(
     async (
-      searchText: string,
-      filters?: SearchFilterInput[]
-    ): Promise<ProductData[]> => {
+      includeProductSelectionId: string,
+      searchText: string
+    ): Promise<ProductSearchResult> => {
       setLoading(true);
       setError(null);
 
       try {
         logger.info(`Searching products with text: "${searchText}"`);
-        const response = (await searchProducts({
-          text: searchText,
-          filter: filters || [],
-        })) as { data: ProductSearchResponse };
-
-        const { data } = response;
+        const response = await executeProductSearchQuery({
+          includeProductSelectionId,
+          limit: perPage?.value,
+          offset: ((page?.value || 1) - 1) * (perPage?.value || 20),
+          locale: dataLocale,
+          searchText,
+        });
 
         // Log the raw response for debugging
         logger.info(
           'Raw search response data structure:',
-          JSON.stringify(
-            data?.productProjectionSearch?.results?.[0] || {},
-            null,
-            2
-          )
+          JSON.stringify(response?.results?.[0] || {}, null, 2)
         );
 
-        if (
-          data?.productProjectionSearch?.results &&
-          Array.isArray(data.productProjectionSearch.results)
-        ) {
-          logger.info(
-            `Search found ${data.productProjectionSearch.results.length} products`
+        if (response?.results && Array.isArray(response.results)) {
+          logger.info(`Search found ${response.results.length} products`);
+
+          const products = response.results.map((item, index: number) =>
+            mapProductSearchResponse(item, index, dataLocale)
           );
 
-          const products = data.productProjectionSearch.results.map(
-            (product, index) => {
-              logger.info(
-                `Processing product ${index + 1}/${
-                  data.productProjectionSearch.results.length
-                }, ID: ${product.id}`
-              );
-
-              // Extract name from nameAllLocales, preferring en-US
-              let productName = 'Unnamed product';
-              if (product.nameAllLocales && product.nameAllLocales.length > 0) {
-                logger.info(
-                  `nameAllLocales for product ${product.id}:`,
-                  JSON.stringify(product.nameAllLocales, null, 2)
-                );
-
-                // Try to find the en-US locale first
-                const enUsName = product.nameAllLocales.find(
-                  (name) => name.locale === 'en-US'
-                );
-                if (enUsName) {
-                  productName = enUsName.value;
-                  logger.info(`Using en-US locale name: "${productName}"`);
-                } else {
-                  // Fallback to first name if en-US not available
-                  productName = product.nameAllLocales[0].value;
-                  logger.info(
-                    `No en-US locale found, using first available: "${productName}"`
-                  );
-                }
-              } else {
-                logger.info(
-                  `No nameAllLocales found for product ${product.id}`
-                );
-              }
-
-              // Get image URL from masterVariant
-              let imageUrl = 'https://via.placeholder.com/80';
-              if (
-                product.masterVariant?.images &&
-                product.masterVariant.images.length > 0
-              ) {
-                imageUrl = product.masterVariant.images[0].url;
-                logger.info(`Found image URL: ${imageUrl}`);
-              } else {
-                logger.info(`No images found, using placeholder`);
-              }
-
-              // Add cache busting parameter with product ID to ensure uniqueness
-              if (imageUrl && !imageUrl.includes('via.placeholder.com')) {
-                const productSpecificId = `product_${product.id}`;
-                const cacheBuster = `_cb=${Date.now()}_${productSpecificId}_${Math.random()
-                  .toString(36)
-                  .substring(2, 8)}`;
-                imageUrl = imageUrl.includes('?')
-                  ? `${imageUrl}&${cacheBuster}`
-                  : `${imageUrl}?${cacheBuster}`;
-              }
-
-              const result = {
-                id: product.id,
-                name: productName,
-                image: imageUrl,
-                sku: product.masterVariant?.sku || 'No SKU',
-              };
-
-              logger.info(`Final product data:`, result);
-              return result;
-            }
-          );
-
-          return products;
+          return {
+            total: response.total,
+            offset: response.offset,
+            limit: response.limit,
+            results: products,
+          };
         }
 
         logger.info('No products found in search');
-        return [];
+        return {
+          total: 0,
+          offset: 0,
+          limit: 0,
+          results: [],
+        };
       } catch (err) {
         logger.error(`Error searching products:`, err);
         setError(
@@ -662,20 +612,88 @@ const useStoreProducts = ({
             ? err
             : new Error(`Unknown error searching products`)
         );
-        return [];
+        return {
+          total: 0,
+          offset: 0,
+          limit: 0,
+          results: [],
+        };
       } finally {
         setLoading(false);
       }
     },
-    [searchProducts]
+    [executeProductSearchQuery]
+  );
+
+  const fetchUserStoreProducts =
+    useCallback(async (): Promise<ProductSearchResult> => {
+      if (!productSelectionId) {
+        console.warn('Product selection ID is required');
+        return {
+          total: 0,
+          offset: 0,
+          limit: 0,
+          results: [],
+        };
+      }
+      return fetchStoreProducts(productSelectionId);
+    }, [fetchStoreProducts, productSelectionId]);
+
+  const fetchMasterStoreProducts =
+    useCallback(async (): Promise<ProductSearchResult> => {
+      if (!masterProductSelectionId || !productSelectionId) {
+        console.warn('Product selection ID is required');
+        return {
+          total: 0,
+          offset: 0,
+          limit: 0,
+          results: [],
+        };
+      }
+      return fetchStoreProducts(masterProductSelectionId, productSelectionId);
+    }, [fetchStoreProducts, masterProductSelectionId, productSelectionId]);
+
+  const searchStoreProducts = useCallback(
+    async (searchText: string): Promise<ProductSearchResult> => {
+      if (!productSelectionId) {
+        console.warn('Product selection ID is required');
+        return {
+          total: 0,
+          offset: 0,
+          limit: 0,
+          results: [],
+        };
+      }
+      return searchProductsFunc(productSelectionId, searchText);
+    },
+    [searchProductsFunc, productSelectionId]
+  );
+
+  const searchMasterProducts = useCallback(
+    async (searchText: string): Promise<ProductSearchResult> => {
+      if (!masterProductSelectionId || !productSelectionId) {
+        console.warn('Product selection ID is required');
+        return {
+          total: 0,
+          offset: 0,
+          limit: 0,
+          results: [],
+        };
+      }
+      return searchProductsFunc(masterProductSelectionId, searchText);
+    },
+    [searchProductsFunc, masterProductSelectionId, productSelectionId]
   );
 
   return {
-    fetchStoreProducts,
+    executeProductSearchQuery,
+    fetchUserStoreProducts,
+    fetchMasterStoreProducts,
     addProductsToStore,
     removeProductsFromStore,
     createProduct,
-    searchProducts: searchProductsFunc,
+    searchStoreProducts,
+    searchMasterProducts,
     loading,
     error,
   };

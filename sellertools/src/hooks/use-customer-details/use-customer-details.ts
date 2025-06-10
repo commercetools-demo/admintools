@@ -1,9 +1,8 @@
-import { useCallback, useState } from 'react';
-import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
 import { useMcQuery } from '@commercetools-frontend/application-shell';
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
-import { TCustomer } from '../../types/generated/ctp';
 import gql from 'graphql-tag';
+import { useCallback, useState } from 'react';
+import { TCustomer } from '../../types/generated/ctp';
 
 interface CustomerData {
   customer: TCustomer;
@@ -18,6 +17,14 @@ interface UseCustomerDetailsResult {
   loading: boolean;
   error: Error | null;
   fetchCustomer: (customerId: string) => Promise<TCustomer | null>;
+  customerGroupLoading: boolean;
+  fetchCustomerGroup: (customerGroupId: string) => Promise<
+    | {
+        id: string;
+        key: string;
+      }
+    | undefined
+  >;
 }
 
 const CUSTOMER_QUERY = gql`
@@ -53,10 +60,25 @@ const CUSTOMER_QUERY = gql`
   }
 `;
 
+const CUSTOMERGROUP_QUERY = gql`
+  query GetCustomerGroup($id: String!) {
+    customerGroup(id: $id) {
+      id
+      key
+    }
+  }
+`;
+
+interface CustomerGroupData {
+  customerGroup: {
+    id: string;
+    key: string;
+  };
+}
+
 const useCustomerDetails = (): UseCustomerDetailsResult => {
   const [customer, setCustomer] = useState<TCustomer | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const { dataLocale } = useApplicationContext();
 
   const { loading, refetch } = useMcQuery<CustomerData, CustomerVariables>(
     CUSTOMER_QUERY,
@@ -67,6 +89,14 @@ const useCustomerDetails = (): UseCustomerDetailsResult => {
       skip: true, // Skip initial query, we'll use refetch
     }
   );
+
+  const { loading: customerGroupLoading, refetch: refetchCustomerGroup } =
+    useMcQuery<CustomerGroupData>(CUSTOMERGROUP_QUERY, {
+      context: {
+        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
+      },
+      skip: true, // Skip initial query, we'll use refetch
+    });
 
   const fetchCustomer = useCallback(
     async (customerId: string): Promise<TCustomer | null> => {
@@ -93,11 +123,29 @@ const useCustomerDetails = (): UseCustomerDetailsResult => {
     [refetch]
   );
 
+  const fetchCustomerGroup = useCallback(
+    async (
+      customerGroupId: string
+    ): Promise<
+      | {
+          id: string;
+          key: string;
+        }
+      | undefined
+    > => {
+      const result = await refetchCustomerGroup({ id: customerGroupId });
+      return result.data?.customerGroup;
+    },
+    [refetchCustomerGroup]
+  );
+
   return {
     customer,
     loading,
     error,
     fetchCustomer,
+    customerGroupLoading,
+    fetchCustomerGroup,
   };
 };
 

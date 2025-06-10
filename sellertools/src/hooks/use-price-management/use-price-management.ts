@@ -7,65 +7,14 @@ import {
 import { GRAPHQL_TARGETS } from '@commercetools-frontend/constants';
 import gql from 'graphql-tag';
 import logger from '../../utils/logger';
+import useStoreProducts from '../use-store-products/use-store-products';
+import { TState } from '@commercetools-uikit/hooks';
+import { useAuthContext } from '../../contexts/auth-context';
+import { Price } from '@commercetools/platform-sdk';
 
 // Constants
 const DEFAULT_CURRENCY_CODE = 'USD';
 const DEFAULT_COUNTRY_CODE = 'US';
-const MASTER_STORE_CHANNEL_KEY = 'master-store';
-
-// GraphQL query to fetch products with their prices (both current and staged)
-const GET_PRODUCTS_WITH_PRICES = gql`
-  query GetProductsWithPrices($storeKey: String!) {
-    productSelection(key: $storeKey) {
-      productRefs {
-        results {
-          product {
-            id
-            version
-            masterData {
-              current {
-                name(locale: "en-us")
-                masterVariant {
-                  images {
-                    url
-                  }
-                  sku
-                  prices {
-                    id
-                    value {
-                      centAmount
-                      currencyCode
-                    }
-                    channel {
-                      id
-                      key
-                    }
-                  }
-                }
-              }
-              staged {
-                name(locale: "en-us")
-                masterVariant {
-                  prices {
-                    id
-                    value {
-                      centAmount
-                      currencyCode
-                    }
-                    channel {
-                      id
-                      key
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
 
 // GraphQL query to get product details including all prices
 const GET_PRODUCT_PRICES = gql`
@@ -123,23 +72,10 @@ const UPDATE_PRODUCT_PRICE = gql`
   }
 `;
 
-// Type definitions for GraphQL response
-interface ProductPrice {
-  id: string;
-  value: {
-    centAmount: number;
-    currencyCode: string;
-  };
-  channel?: {
-    id: string;
-    key: string;
-  };
-}
-
 interface ProductVariant {
   images: Array<{ url: string }>;
   sku: string;
-  prices?: ProductPrice[];
+  prices?: Price[];
 }
 
 interface ProductDataVersion {
@@ -158,30 +94,8 @@ interface Product {
   masterData: ProductMasterData;
 }
 
-interface ProductRef {
-  product: Product;
-}
-
-interface ProductSelection {
-  productRefs: {
-    results: ProductRef[];
-  };
-}
-
-interface GetProductsWithPricesResponse {
-  productSelection: ProductSelection;
-}
-
 interface GetProductPricesResponse {
   product: Product;
-}
-
-// Response type for update operation
-interface UpdateProductResponse {
-  updateProduct: {
-    id: string;
-    version: number;
-  };
 }
 
 // Product type definition with price information
@@ -203,9 +117,18 @@ interface ProductPriceData {
   };
 }
 
+interface PagedProductPriceData {
+  results: ProductPriceData[];
+  total: number;
+  offset: number;
+  count: number;
+}
+
 // Define the hook interface
 interface UsePriceManagementResult {
-  fetchProductsWithPrices: (storeKey: string) => Promise<ProductPriceData[]>;
+  fetchProductsWithPrices: (
+    searchText?: string
+  ) => Promise<PagedProductPriceData>;
   updateProductPrice: (
     productId: string,
     version: number,
@@ -220,33 +143,36 @@ interface UsePriceManagementResult {
 /**
  * Helper function to find a price by channel key and currency code
  */
-const findPriceByChannelKey = (
-  current: ProductPrice[] | undefined,
-  staged: ProductPrice[] | undefined,
-  channelKey: string,
+const findPriceByChannelId = (
+  current: Price[] | undefined,
+  channelId: string | null,
   currencyCode: string = DEFAULT_CURRENCY_CODE
-): ProductPrice | undefined => {
+): Price | undefined => {
   // Look in current prices first
   const currentPrice = current?.find(
-    (p) =>
-      p.channel?.key === channelKey && p.value.currencyCode === currencyCode
+    (p) => p.channel?.id === channelId && p.value.currencyCode === currencyCode
   );
-
-  if (currentPrice) return currentPrice;
-
-  // Look in staged prices if not found in current
-  return staged?.find(
-    (p) =>
-      p.channel?.key === channelKey && p.value.currencyCode === currencyCode
-  );
+  return currentPrice;
 };
 
 /**
  * Price management hook for fetching and updating product prices
  */
-const usePriceManagement = (): UsePriceManagementResult => {
+const usePriceManagement = ({
+  page,
+  perPage,
+}: {
+  page?: TState;
+  perPage?: TState;
+}): UsePriceManagementResult => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { executeProductSearchQuery } = useStoreProducts({});
+  const {
+    productSelectionId,
+    masterDistributionChannelId,
+    distributionChannelId,
+  } = useAuthContext();
   const { dataLocale } = useApplicationContext((context) => ({
     dataLocale: context.dataLocale ?? 'en-US',
   }));
@@ -269,19 +195,6 @@ const usePriceManagement = (): UsePriceManagementResult => {
 
     return errorObj;
   };
-
-  const { refetch } = useMcQuery<GetProductsWithPricesResponse>(
-    GET_PRODUCTS_WITH_PRICES,
-    {
-      variables: {
-        storeKey: 'placeholder', // This will be overridden in fetchProductsWithPrices
-      },
-      context: {
-        target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-      },
-      skip: true, // Skip initial query, we'll trigger it manually
-    }
-  );
 
   const { refetch: getProductPrices } = useMcQuery<GetProductPricesResponse>(
     GET_PRODUCT_PRICES,
@@ -306,98 +219,111 @@ const usePriceManagement = (): UsePriceManagementResult => {
    * Fetches products with their prices for a specific store
    */
   const fetchProductsWithPrices = useCallback(
-    async (storeKey: string): Promise<ProductPriceData[]> => {
+    async (searchText?: string): Promise<PagedProductPriceData> => {
       setLoading(true);
       setError(null);
 
+      if (!productSelectionId) {
+        throw new Error('Product selection ID is not set');
+      }
+
       try {
-        logger.info(`Fetching products with prices for store: ${storeKey}`);
-        const { data } = await refetch({
-          storeKey,
+        logger.info(
+          `Fetching products with prices for channel: ${distributionChannelId}`
+        );
+        const data = await executeProductSearchQuery({
+          includeProductSelectionId: productSelectionId,
+          limit: perPage?.value,
+          offset: ((page?.value || 1) - 1) * (perPage?.value || 20),
+          locale: dataLocale,
+          ...(searchText && { searchText }),
         });
 
-        if (
-          data?.productSelection?.productRefs?.results &&
-          Array.isArray(data.productSelection.productRefs.results)
-        ) {
-          const products = data.productSelection.productRefs.results.map(
-            (item) => {
-              const product = item.product;
-              const currentMasterVariant =
-                product.masterData.current.masterVariant;
-              const stagedMasterVariant =
-                product.masterData.staged?.masterVariant;
+        if (data?.results && Array.isArray(data.results)) {
+          const products = data.results.map((item) => {
+            const product = item.productProjection;
+            const currentMasterVariant = product?.masterVariant;
 
-              // Find store price using helper function
-              const storePrice = findPriceByChannelKey(
-                currentMasterVariant.prices,
-                stagedMasterVariant?.prices,
-                storeKey
-              );
+            // Find store price using helper function
+            const storePrice = findPriceByChannelId(
+              currentMasterVariant?.prices,
+              distributionChannelId
+            );
 
-              if (
-                storePrice &&
-                storePrice.channel?.key !==
-                  currentMasterVariant.prices?.[0]?.channel?.key
-              ) {
-                logger.info(
-                  `Found price in staged data for product ${product.id}`
-                );
-              }
+            // Find master store price using helper function
+            const masterStorePrice = findPriceByChannelId(
+              currentMasterVariant?.prices,
+              masterDistributionChannelId
+            );
 
-              // Find master store price using helper function
-              const masterStorePrice = findPriceByChannelKey(
-                currentMasterVariant.prices,
-                stagedMasterVariant?.prices,
-                MASTER_STORE_CHANNEL_KEY
-              );
-
-              return {
-                id: product.id,
-                version: product.version,
-                name: product.masterData.current.name || 'Unnamed product',
-                image:
-                  currentMasterVariant.images?.[0]?.url ||
-                  'https://via.placeholder.com/80',
-                sku: currentMasterVariant.sku || 'No SKU',
-                currentPrice: storePrice
-                  ? {
-                      id: storePrice.id,
-                      value: storePrice.value.centAmount / 100, // Convert cents to dollars
-                      currencyCode: storePrice.value.currencyCode,
-                    }
-                  : undefined,
-                masterPrice: masterStorePrice
-                  ? {
-                      id: masterStorePrice.id,
-                      value: masterStorePrice.value.centAmount / 100, // Convert cents to dollars
-                      currencyCode: masterStorePrice.value.currencyCode,
-                    }
-                  : undefined,
-              };
-            }
-          );
+            return {
+              id: item.id,
+              name: product?.name[dataLocale] || 'Unnamed product',
+              version: product?.version || 0,
+              image:
+                currentMasterVariant?.images?.[0]?.url ||
+                'https://via.placeholder.com/80',
+              sku: currentMasterVariant?.sku || 'No SKU',
+              currentPrice: storePrice
+                ? {
+                    id: storePrice.id,
+                    value: storePrice.value.centAmount / 100, // Convert cents to dollars
+                    currencyCode: storePrice.value.currencyCode,
+                  }
+                : undefined,
+              masterPrice: masterStorePrice
+                ? {
+                    id: masterStorePrice.id,
+                    value: masterStorePrice.value.centAmount / 100, // Convert cents to dollars
+                    currencyCode: masterStorePrice.value.currencyCode,
+                  }
+                : undefined,
+            };
+          });
 
           logger.info(
-            `Successfully fetched ${products.length} products with prices for store ${storeKey}`
+            `Successfully fetched ${products.length} products with prices for store ${distributionChannelId}`
           );
-          return products;
+          return {
+            results: products,
+            total: data.total,
+            offset: data.offset,
+            count: data.total,
+          };
         }
 
-        logger.info(`No products found for store ${storeKey}`);
-        return [];
+        logger.info(`No products found for store ${distributionChannelId}`);
+        return {
+          results: [],
+          total: 0,
+          offset: 0,
+          count: 0,
+        };
       } catch (err) {
         const error = handleError(
           err,
-          `Error fetching products with prices for store ${storeKey}`
+          `Error fetching products with prices for store ${distributionChannelId}`
         );
         setError(error);
-        return [];
+        return {
+          results: [],
+          total: 0,
+          offset: 0,
+          count: 0,
+        };
       } finally {
         setLoading(false);
       }
     },
-    [refetch]
+    [
+      productSelectionId,
+      executeProductSearchQuery,
+      perPage?.value,
+      page?.value,
+      distributionChannelId,
+      masterDistributionChannelId,
+      dataLocale,
+    ]
   );
 
   /**
@@ -435,18 +361,12 @@ const usePriceManagement = (): UsePriceManagementResult => {
         // Check both current and staged variants for existing prices
         const currentPrices =
           data.product.masterData.current.masterVariant.prices || [];
-        const stagedPrices =
-          data.product.masterData.staged?.masterVariant.prices || [];
 
         // Find existing price ID if not provided
         let existingPriceId = priceId;
 
         if (!existingPriceId) {
-          const existingPrice = findPriceByChannelKey(
-            currentPrices,
-            stagedPrices,
-            channelKey
-          );
+          const existingPrice = findPriceByChannelId(currentPrices, channelKey);
 
           if (existingPrice) {
             existingPriceId = existingPrice.id;

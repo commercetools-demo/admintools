@@ -17,7 +17,6 @@ const config = {
     },
   },
   additionalEnv: {
-    'CUSTOMER_GROUP': '${env:SELLER_CUSTOMERGROUP_KEY}',
     'ASSOCIATE_ROLE': '${env:ASSOCIATE_ROLE}',
     'MC_TEAM_NAME': '${env:MC_TEAM_NAME}',
   },

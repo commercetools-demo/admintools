@@ -29,4 +29,8 @@ export default defineMessages({
     id: 'ManageSellertools.productSelection',
     defaultMessage: 'Product Selection',
   },
+  store: {
+    id: 'ManageSellertools.store',
+    defaultMessage: 'Store',
+  },
 });

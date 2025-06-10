@@ -12,10 +12,12 @@ import SelectField from '@commercetools-uikit/select-field';
 import { useCustomObject } from '../../hooks/use-custom-objects';
 import useCustomerGroups from '../../hooks/use-customer-groups/use-customer-details';
 import useProductSelections from '../../hooks/use-product-selection/use-product-selection';
+import useStoreManagement, { Store } from '../../hooks/use-store-management';
 
 type TFormValues = {
   sellerCustomerGroupID: string;
   mainCatalogProductSelectionID: string;
+  storeKey: string;
 };
 type TFieldErrors = Record<string, boolean>;
 
@@ -27,16 +29,20 @@ const ManageSellertools = () => {
   const {
     getSelectedCustomerGroup,
     getSelectedProductSelection,
-    setSelectedProductSelectionAndCustomerGroup,
+    getSelectedStore,
+    setSellertoolsContext,
   } = useCustomObject();
+  const [stores, setStores] = useState<Store[]>([]);
   const [initialValues, setInitialValues] = useState<TFormValues>({
     sellerCustomerGroupID: '',
     mainCatalogProductSelectionID: '',
+    storeKey: '',
   });
   const { customerGroups, loading: customerGroupsLoading } =
     useCustomerGroups();
   const { productSelections, loading: productSelectionsLoading } =
     useProductSelections();
+  const { findStores, loading: storesLoading } = useStoreManagement();
 
   const [isLoading, setIsLoading] = useState(false);
   const validate = (values: TFormValues): TFormErrors => {
@@ -50,11 +56,22 @@ const ManageSellertools = () => {
       errors.mainCatalogProductSelectionID = { missing: true };
     }
 
+    if (!values.storeKey?.trim()) {
+      errors.storeKey = { missing: true };
+    }
     return errors;
   };
 
   const handleBackToDashboard = () => {
     history.push('/');
+  };
+
+  const handleSubmit = (values: TFormValues) => {
+    setSellertoolsContext(
+      values.mainCatalogProductSelectionID,
+      values.sellerCustomerGroupID,
+      values.storeKey
+    );
   };
 
   useEffect(() => {
@@ -72,17 +89,24 @@ const ManageSellertools = () => {
           mainCatalogProductSelectionID: id || '',
         }));
       });
+      await getSelectedStore().then((key) => {
+        setInitialValues((prev) => ({
+          ...prev,
+          storeKey: key || '',
+        }));
+      });
       setIsLoading(false);
     };
     fetchData();
   }, []);
 
-  const handleSubmit = (values: TFormValues) => {
-    setSelectedProductSelectionAndCustomerGroup(
-      values.mainCatalogProductSelectionID,
-      values.sellerCustomerGroupID
-    );
-  };
+  useEffect(() => {
+    const fetchStores = async () => {
+      const stores = await findStores();
+      setStores(stores?.results || []);
+    };
+    fetchStores();
+  }, [findStores]);
 
   if (isLoading || customerGroupsLoading || productSelectionsLoading) {
     return null;
@@ -126,6 +150,21 @@ const ManageSellertools = () => {
                       onChange={(event) =>
                         formikProps.setFieldValue(
                           'sellerCustomerGroupID',
+                          event.target.value
+                        )
+                      }
+                    />
+                    <SelectField
+                      isSearchable
+                      title={intl.formatMessage(messages.store)}
+                      value={formikProps.values.storeKey}
+                      options={stores.map((store) => ({
+                        label: store.name,
+                        value: store.key,
+                      }))}
+                      onChange={(event) =>
+                        formikProps.setFieldValue(
+                          'storeKey',
                           event.target.value
                         )
                       }

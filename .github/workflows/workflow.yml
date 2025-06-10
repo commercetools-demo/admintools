@@ -74,7 +74,6 @@ jobs:
             "--configuration" "chat.AI_PROVIDER=${{ vars.CHAT_AI_PROVIDER }}"
             "--configuration" "chat.AI_MODEL=${{ vars.CHAT_AI_MODEL }}"
             "--configuration" "chat.CTP_CLIENT_SECRET=${{ secrets.CTP_CLIENT_SECRET }}"
-            "--configuration" "SELLER_CUSTOMERGROUP_KEY=${{ vars.SELLER_CUSTOMERGROUP_KEY }}"
             "--configuration" "JWT_SECRET=${{ secrets.JWT_SECRET }}"
             "--configuration" "chat.CTP_AUTH_URL=${{ vars.CTP_AUTH_URL }}"
             "--configuration" "chat.CTP_API_URL=${{ vars.CTP_API_URL }}"

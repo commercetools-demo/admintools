@@ -1,32 +1,28 @@
 import DataTable from '@commercetools-uikit/data-table';
-import {
-  useDataTableSortingState,
-  usePaginationState,
-} from '@commercetools-uikit/hooks';
+import { usePaginationState } from '@commercetools-uikit/hooks';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import { ErrorMessage } from '@commercetools-uikit/messages';
+import { Pagination } from '@commercetools-uikit/pagination';
 import PrimaryButton from '@commercetools-uikit/primary-button';
+import SearchTextInput from '@commercetools-uikit/search-text-input';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
-import FieldLabel from '@commercetools-uikit/field-label';
-import SearchTextInput from '@commercetools-uikit/search-text-input';
 import { useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
+import { useAuthContext } from '../../contexts/auth-context';
 import useStoreProducts from '../../hooks/use-store-products/use-store-products';
 import logger from '../../utils/logger';
 import messages from './messages';
 import { CheckboxCell, ImageCell, ProductData } from './products';
 import styles from './products.module.css';
 import { useProductWrapper } from './store-products-wrapper';
-import { useAuthContext } from '../../contexts/auth-context';
-import { Pagination } from '@commercetools-uikit/pagination';
 
 const MasterProductTable = () => {
   const intl = useIntl();
 
   const latestSearchQueryRef = useRef<string>('');
 
-  const { storeProducts, fetchUserStoreProducts } = useProductWrapper();
+  const { fetchUserStoreProducts } = useProductWrapper();
   const { storeKey } = useAuthContext();
 
   const [isSearching, setIsSearching] = useState(false);
@@ -37,10 +33,11 @@ const MasterProductTable = () => {
   const [masterProducts, setMasterProducts] = useState<ProductData[]>([]);
   const [pendingSearches, setPendingSearches] = useState(0);
   const [isAddingProducts, setIsAddingProducts] = useState(false);
+  const [total, setTotal] = useState(0);
 
   const { page, perPage } = usePaginationState();
 
-  const { fetchStoreProducts, addProductsToStore, searchProducts } =
+  const { fetchMasterStoreProducts, addProductsToStore, searchMasterProducts } =
     useStoreProducts({ page, perPage });
 
   const handleProductSelection = (productId: string) => {
@@ -83,22 +80,23 @@ const MasterProductTable = () => {
 
     try {
       logger.info('Fetching products for master-store');
-      const result = await fetchStoreProducts('master-store');
+      const result = await fetchMasterStoreProducts();
 
       if (result) {
-        logger.info(`Fetched ${result.length} products from master-store`);
+        logger.info(
+          `Fetched ${result.results.length} products from master-store`
+        );
         // Mark previously selected products
-        const updatedProducts = result.map((product) => ({
+        const updatedProducts = result.results.map((product) => ({
           ...product,
           isSelected: selectedProducts.includes(product.id),
         }));
-        const filteredProducts = updatedProducts.filter(
-          (product) => !storeProducts?.find((p) => p.id === product.id)
-        );
-        setMasterProducts(filteredProducts);
+        setMasterProducts(updatedProducts);
+        setTotal(result.total);
       } else {
         logger.info('No products returned for master-store');
         setMasterProducts([]);
+        setTotal(0);
       }
     } catch (err) {
       logger.error('Error fetching master-store products:', err);
@@ -133,7 +131,7 @@ const MasterProductTable = () => {
 
     try {
       logger.info(`Executing search with query: "${currentSearchQuery}"`);
-      const searchResults = await searchProducts(currentSearchQuery);
+      const searchResults = await searchMasterProducts(currentSearchQuery);
 
       // Only process the results if this is still the latest search query
       if (currentSearchQuery !== latestSearchQueryRef.current) {
@@ -146,7 +144,7 @@ const MasterProductTable = () => {
       logger.info('Search results received:', searchResults);
 
       // Mark previously selected products
-      const updatedProducts = searchResults.map((product) => ({
+      const updatedProducts = searchResults.results.map((product) => ({
         ...product,
         isSelected: selectedProducts.includes(product.id),
       }));
@@ -154,6 +152,7 @@ const MasterProductTable = () => {
       // Don't filter out products already in store - just show all search results
       // This way users can see all matching products, even if they're already in their store
       setMasterProducts(updatedProducts);
+      setTotal(searchResults.total);
     } catch (err) {
       // Only set error if this is still the latest search query
       if (currentSearchQuery === latestSearchQueryRef.current) {
@@ -180,7 +179,7 @@ const MasterProductTable = () => {
 
   useEffect(() => {
     fetchMasterProducts();
-  }, [storeProducts?.length, fetchStoreProducts]);
+  }, [fetchMasterStoreProducts]);
 
   useEffect(() => {
     // Update selected state when selectedProducts changes
@@ -231,11 +230,11 @@ const MasterProductTable = () => {
           <Text.Body>
             {searchQuery
               ? intl.formatMessage(messages.searchResults, {
-                  count: masterProducts.length,
+                  count: total,
                   query: searchQuery,
                 })
               : intl.formatMessage(messages.masterProductsCount, {
-                  count: masterProducts.length,
+                  count: total,
                 })}
           </Text.Body>
 
@@ -333,7 +332,7 @@ const MasterProductTable = () => {
               onPageChange={page.onChange}
               perPage={perPage.value}
               onPerPageChange={perPage.onChange}
-              totalItems={masterProducts.length}
+              totalItems={total}
             />
           </div>
         )}

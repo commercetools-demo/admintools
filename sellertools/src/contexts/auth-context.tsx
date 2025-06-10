@@ -1,17 +1,18 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-  useEffect,
-  useCallback,
-  useMemo,
-} from 'react';
-import { TCustomer } from '../types/generated/ctp';
-import useCustomerAuth from '../hooks/use-customer-auth/use-customer-auth';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import { ErrorMessage } from '@commercetools-uikit/messages';
-import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { CUSTOMER_GROUP_KEY, SHARED_CONTAINER } from '../constants';
+import { useCustomObject } from '../hooks/use-custom-objects';
+import useCustomerAuth from '../hooks/use-customer-auth/use-customer-auth';
+import useCustomerDetails from '../hooks/use-customer-details/use-customer-details';
+import { TCustomer } from '../types/generated/ctp';
 // Type for customer details in the context
 export type CustomerDetails = {
   id: string;
@@ -19,8 +20,6 @@ export type CustomerDetails = {
   firstName?: string | null;
   lastName?: string | null;
 };
-
-const AUTH_STORAGE_KEY = '__seller_auth';
 
 export const convertToCustomerDetails = (
   customer: TCustomer
@@ -37,16 +36,36 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   storeKey: string | null;
+  distributionChannelId: string | null;
+  masterDistributionChannelId: string | null;
+  masterStoreKey: string | null;
+  setMasterStoreKey: (masterStoreKey: string) => void;
   setStoreKey: (storeKey: string) => void;
+  setDistributionChannelId: (distributionChannelId: string) => void;
+  setMasterDistributionChannelId: (masterDistributionChannelId: string) => void;
   customerDetails: CustomerDetails | null;
+  productSelectionId: string | undefined;
+  masterProductSelectionId: string | undefined;
+  setProductSelectionId: (productSelectionId?: string) => void;
+  setMasterProductSelectionId: (masterProductSelectionId?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   isLoading: false,
   storeKey: null,
+  distributionChannelId: null,
+  masterDistributionChannelId: null,
+  masterStoreKey: null,
+  setMasterStoreKey: () => {},
   setStoreKey: () => {},
+  setDistributionChannelId: () => {},
+  setMasterDistributionChannelId: () => {},
   customerDetails: null,
+  productSelectionId: undefined,
+  masterProductSelectionId: undefined,
+  setProductSelectionId: () => {},
+  setMasterProductSelectionId: () => {},
 });
 
 interface AuthProviderProps {
@@ -56,8 +75,25 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [storeKey, setStoreKey] = useState<string | null>(null);
+  const [distributionChannelId, setDistributionChannelId] = useState<
+    string | null
+  >(null);
+  const [productSelectionId, setProductSelectionId] = useState<
+    string | undefined
+  >(undefined);
+  const [masterProductSelectionId, setMasterProductSelectionId] = useState<
+    string | undefined
+  >(undefined);
+  const [masterDistributionChannelId, setMasterDistributionChannelId] =
+    useState<string | null>(null);
+  const [masterStoreKey, setMasterStoreKey] = useState<string | null>(null);
   const [customerDetails, setCustomerDetails] =
     useState<CustomerDetails | null>(null);
+  const [customerGroupKey, setCustomerGroupKey] = useState<string | undefined>(
+    undefined
+  );
+  const { getCustomObject } = useCustomObject(SHARED_CONTAINER);
+  const { fetchCustomerGroup } = useCustomerDetails();
 
   const {
     mcLoggedInUserLoading,
@@ -67,39 +103,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     findCustomerByEmailLoading,
   } = useCustomerAuth();
 
-  const {
-    environment,
-  }: {
-    environment: {
-      SELLER_CUSTOMERGROUP_KEY: string;
-    };
-  } = useApplicationContext();
-
   useEffect(() => {
-    try {
-      const savedAuth = sessionStorage.getItem(AUTH_STORAGE_KEY);
-
-      if (savedAuth) {
-        const parsedAuth = JSON.parse(savedAuth);
-
-        if (
-          parsedAuth &&
-          typeof parsedAuth.isLoggedIn === 'boolean' &&
-          parsedAuth.customerDetails
-        ) {
-          console.log('Restoring auth state from session storage');
-          setIsLoggedIn(parsedAuth.isLoggedIn);
-          setCustomerDetails(parsedAuth.customerDetails);
-          setStoreKey(parsedAuth.storeKey);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load auth state from session storage:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (mcLoggedInUser && mcLoggedInUser.user?.id) {
+    if (mcLoggedInUser && mcLoggedInUser.user?.id && customerGroupKey) {
       findCustomerByEmail({
         variables: {
           where: `email = "${mcLoggedInUser.user.email}"`,
@@ -111,14 +116,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             result.data?.customers?.results?.[0].customerGroupAssignments;
           const isSeller =
             customerGroupAssignments?.some(
-              (assignment) =>
-                assignment.customerGroup.key ===
-                environment.SELLER_CUSTOMERGROUP_KEY
+              (assignment) => assignment.customerGroup.key === customerGroupKey
             ) ||
             result.data?.customers?.results?.[0].customerGroup?.key ===
-              environment.SELLER_CUSTOMERGROUP_KEY;
+              customerGroupKey;
           setIsLoggedIn(!!isSeller);
           setCustomerDetails(convertToCustomerDetails(customer));
+        }
+      });
+    }
+  }, [mcLoggedInUser, customerGroupKey]);
+
+  useEffect(() => {
+    if (mcLoggedInUser && mcLoggedInUser.user?.id) {
+      getCustomObject(CUSTOMER_GROUP_KEY).then((result) => {
+        const customerGroupId = result?.value;
+        if (customerGroupId) {
+          fetchCustomerGroup(customerGroupId).then((customerGroup) => {
+            if (customerGroup) {
+              setCustomerGroupKey(customerGroup.key);
+            }
+          });
         }
       });
     }
@@ -129,11 +147,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     () => ({
       isLoggedIn,
       isLoading: mcLoggedInUserLoading || findCustomerByEmailLoading,
-      storeKey,
       customerDetails,
+      storeKey,
+      productSelectionId,
+      distributionChannelId,
+      masterStoreKey,
+      masterProductSelectionId,
+      masterDistributionChannelId,
       setStoreKey,
+      setProductSelectionId,
+      setDistributionChannelId,
+      setMasterStoreKey,
+      setMasterProductSelectionId,
+      setMasterDistributionChannelId,
     }),
-    [isLoggedIn, storeKey, customerDetails, setStoreKey]
+    [
+      isLoggedIn,
+      customerDetails,
+      storeKey,
+      productSelectionId,
+      distributionChannelId,
+      masterDistributionChannelId,
+      masterProductSelectionId,
+      masterStoreKey,
+      setDistributionChannelId,
+      setMasterDistributionChannelId,
+      setStoreKey,
+      setProductSelectionId,
+      setMasterProductSelectionId,
+      setMasterStoreKey,
+    ]
   );
 
   if (mcLoggedInUserLoading || findCustomerByEmailLoading) {

@@ -31,6 +31,7 @@ const StoreProductTable = () => {
     handleRemoveProductsFromStore,
     page,
     perPage,
+    total,
   } = useProductWrapper();
 
   const storeProductColumns = [
@@ -95,11 +96,11 @@ const StoreProductTable = () => {
           <Text.Body>
             {storeSearchQuery
               ? intl.formatMessage(messages.searchResults, {
-                  count: filteredStoreProducts.length,
+                  count: total,
                   query: storeSearchQuery,
                 })
               : intl.formatMessage(messages.storeProductsCount, {
-                  count: storeProducts.length,
+                  count: total,
                 })}
           </Text.Body>
 
@@ -176,7 +177,7 @@ const StoreProductTable = () => {
               onPageChange={page.onChange}
               perPage={perPage.value}
               onPerPageChange={perPage.onChange}
-              totalItems={filteredStoreProducts.length}
+              totalItems={total}
             />
           </div>
         )}

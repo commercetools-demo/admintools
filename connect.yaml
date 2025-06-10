@@ -87,11 +87,6 @@ deployAs:
           required: false
 inheritAs:
   configuration:
-    standardConfiguration:
-      - key: SELLER_CUSTOMERGROUP_KEY
-        description: Seller Customer Group Key
-        required: true
-        default: "seller"
     securedConfiguration:
       - key: JWT_SECRET
         description: JWT secret

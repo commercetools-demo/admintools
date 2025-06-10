@@ -12,6 +12,14 @@ import React, {
 } from 'react';
 import useCustomerBusinessUnits from '../hooks/use-customer-business-units';
 import { useAuthContext } from './auth-context';
+import useProductSelections from '../hooks/use-product-selection/use-product-selection';
+import { useCustomObject } from '../hooks/use-custom-objects';
+import {
+  PRODUCT_SELECTION_KEY,
+  SHARED_CONTAINER,
+  STORE_KEY,
+} from '../constants';
+import useStoreLookup from '../hooks/use-store-lookup/use-store-lookup';
 
 // GraphQL query to get store information for a business unit
 const GET_BUSINESS_UNIT_STORES = gql`
@@ -22,6 +30,9 @@ const GET_BUSINESS_UNIT_STORES = gql`
         id
         key
         name(locale: "en-US")
+        distributionChannels {
+          id
+        }
       }
     }
   }
@@ -31,6 +42,9 @@ interface Store {
   id: string;
   key: string;
   name: string;
+  distributionChannels: {
+    id: string;
+  }[];
 }
 
 interface GetBusinessUnitStoresResponse {
@@ -104,9 +118,16 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
     isLoggedIn,
     setStoreKey,
     storeKey: activeStoreKey,
+    setMasterStoreKey,
+    setProductSelectionId,
+    setMasterProductSelectionId,
+    setDistributionChannelId,
+    setMasterDistributionChannelId,
   } = useAuthContext();
   const [isContextLoading, setIsContextLoading] = useState(false);
-
+  const { getProductSelectionByStoreKey } = useProductSelections();
+  const { getCustomObject } = useCustomObject(SHARED_CONTAINER);
+  const { getStoreByKey } = useStoreLookup();
   const {
     businessUnits,
     selectedBusinessUnit,
@@ -186,6 +207,7 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
           // Always use the first store key as the active store for simplicity
           const storeKey = stores[0].key;
           const storeName = stores[0].name;
+          const distributionChannelId = stores[0].distributionChannels?.[0]?.id;
 
           console.log(
             `Active store: "${storeName}" (${storeKey}) for business unit "${businessUnit.name}"`
@@ -196,9 +218,11 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
             // Only update if the store key has changed
             if (activeStoreKey !== storeKey) {
               setStoreKey(storeKey);
+              setDistributionChannelId(distributionChannelId);
             }
           } else if (isLoggedIn && !activeStoreKey) {
             setStoreKey(storeKey);
+            setDistributionChannelId(distributionChannelId);
           }
         } else {
           console.warn(
@@ -217,6 +241,7 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
       fetchStoreInfo,
       setStoreKey,
       activeStoreKey,
+      setDistributionChannelId,
     ]
   );
 
@@ -245,6 +270,28 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
     },
     [businessUnits, selectedBusinessUnit, selectBusinessUnit]
   );
+
+  const updateProductSelection = useCallback(
+    async (storeKey: string) => {
+      const productSelectionId = await getProductSelectionByStoreKey(storeKey);
+      setProductSelectionId(productSelectionId);
+    },
+    [getProductSelectionByStoreKey]
+  );
+
+  const getMasterProductSelectionAndStore = async () => {
+    const result = await getCustomObject(PRODUCT_SELECTION_KEY);
+    const storeKey = await getCustomObject(STORE_KEY);
+    if (storeKey?.value) {
+      const store = await getStoreByKey(storeKey.value);
+      if (store) {
+        setMasterDistributionChannelId(store.distributionChannels?.[0].id);
+      }
+    }
+    setMasterProductSelectionId(result?.value);
+    setMasterStoreKey(storeKey?.value);
+  };
+
   // Load business units when the user is logged in
   useEffect(() => {
     if (isLoggedIn && customerDetails?.id) {
@@ -274,6 +321,16 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
       updateStoreContext(selectedBusinessUnit);
     }
   }, [selectedBusinessUnit, updateStoreContext]);
+
+  useEffect(() => {
+    if (activeStoreKey) {
+      updateProductSelection(activeStoreKey);
+    }
+  }, [activeStoreKey, updateProductSelection]);
+
+  useEffect(() => {
+    getMasterProductSelectionAndStore();
+  }, []);
 
   // Context value memoized to prevent unnecessary re-renders
   const contextValue = useMemo(
