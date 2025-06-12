@@ -69,23 +69,23 @@ deployAs:
     endpoint: /cms
     configuration:
       standardConfiguration:
-      - key: STORAGE_TYPE
-        description: Storage type (gcp)
-        required: false
-        default: gcp
-      - key: GCP_BUCKET_NAME
-        description: GCP Bucket Name (only used if STORAGE_TYPE is gcp)
-        required: false
-      - key: GCP_PROJECT_ID
-        description: GCP Project ID (only used if STORAGE_TYPE is gcp)
-        required: false
-      - key: GCP_CLIENT_EMAIL
-        description: GCP Client Email (only used if STORAGE_TYPE is gcp)
-        required: false
-    securedConfiguration:
-      - key: GCP_PRIVATE_KEY
-          description: GCP Private Key (only used if STORAGE_TYPE is gcp)
+        - key: STORAGE_TYPE
+          description: Storage type (gcp)
           required: false
+          default: gcp
+        - key: GCP_BUCKET_NAME
+          description: GCP Bucket Name (only used if STORAGE_TYPE is gcp)
+          required: false
+        - key: GCP_PROJECT_ID
+          description: GCP Project ID (only used if STORAGE_TYPE is gcp)
+          required: false
+        - key: GCP_CLIENT_EMAIL
+          description: GCP Client Email (only used if STORAGE_TYPE is gcp)
+          required: false
+      securedConfiguration:
+        - key: GCP_PRIVATE_KEY
+            description: GCP Private Key (only used if STORAGE_TYPE is gcp)
+            required: false
 inheritAs:
   configuration:
     standardConfiguration:
