@@ -17,7 +17,6 @@ const config = {
     },
   },
   additionalEnv: {
-    CMS_API_URL: '${env:CMS_API_URL}',
     JWT_TOKEN: '${env:JWT_TOKEN}',
   },
   headers: {
