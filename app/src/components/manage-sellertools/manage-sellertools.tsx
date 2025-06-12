@@ -63,7 +63,7 @@ const ManageSellertools = () => {
   };
 
   const handleBackToDashboard = () => {
-    history.push('/');
+    history.goBack();
   };
 
   const handleSubmit = (values: TFormValues) => {

@@ -97,7 +97,7 @@ const OnboardSeller: React.FC = () => {
     merchantCenterManagement.loading;
 
   const handleBackToDashboard = () => {
-    history.push('/');
+    history.goBack();
   };
 
   const handleSubmit = async (values: TFormValues) => {

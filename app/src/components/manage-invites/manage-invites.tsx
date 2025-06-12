@@ -19,7 +19,7 @@ const ManageInvites: React.FC = () => {
   const merchantCenterManagement = useMerchantCenterManagement();
 
   const handleBackToDashboard = () => {
-    history.push('/');
+    history.goBack();
   };
 
   const handleSendInvitation = async () => {
