@@ -11,7 +11,7 @@ import React, {
 } from 'react';
 import useStoreProducts from '../../hooks/use-store-products/use-store-products';
 import logger from '../../utils/logger';
-import { ProductData } from '../../hooks/use-store-products/use-store-products';
+import { ProductData } from '../../hooks/use-store-products/types';
 
 interface ProductsContextType {
   fetchUserStoreProducts: () => Promise<void>;
@@ -71,6 +71,7 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
   const { page, perPage } = usePaginationState();
   const {
     fetchUserStoreProducts: fetch,
+    fetchMasterStoreProducts,
     removeProductsFromStore,
     searchStoreProducts,
   } = useStoreProducts({
@@ -121,13 +122,12 @@ export const StoreProductsProvider: React.FC<ProductsProviderProps> = ({
 
     setIsRemovingProducts(true);
     try {
-      const success = await removeProductsFromStore(
-        selectedStoreProducts
-      );
+      const success = await removeProductsFromStore(selectedStoreProducts);
 
       if (success) {
         // Refresh the store products to show the updated list
         await fetchUserStoreProducts();
+        await fetchMasterStoreProducts();
         // Clear selections after successful removal
         setSelectedStoreProducts([]);
       }

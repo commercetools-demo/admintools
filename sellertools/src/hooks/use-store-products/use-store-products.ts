@@ -7,91 +7,38 @@ import {
   GRAPHQL_TARGETS,
   MC_API_PROXY_TARGETS,
 } from '@commercetools-frontend/constants';
-import { TState } from '@commercetools-uikit/hooks';
-import gql from 'graphql-tag';
-import { useCallback, useState } from 'react';
-import logger from '../../utils/logger';
-import { useAuthContext } from '../../contexts/auth-context';
-import { mapProductSearchResponse, mapProdutProjectionResponse } from './mapper';
 import {
   actions,
   TSdkAction,
   useAsyncDispatch,
 } from '@commercetools-frontend/sdk';
+import { TState } from '@commercetools-uikit/hooks';
 import {
   ProductPagedSearchResponse,
   ProductProjectionPagedQueryResponse,
-  ProductProjectionPagedSearchResponse,
 } from '@commercetools/platform-sdk';
-
-interface ProductSelectionResponse {
-  productSelection?: {
-    id: string;
-    version: number;
-    productRefs?: {
-      results: Array<{
-        product: {
-          id: string;
-          masterData: {
-            current: {
-              name: string;
-              masterVariant: {
-                images?: Array<{ url: string }>;
-                sku?: string;
-                key?: string;
-              };
-            };
-          };
-        };
-      }>;
-    };
-  };
-}
-
-export interface ProductSearchResult {
-  total: number;
-  offset: number;
-  limit: number;
-  results: ProductData[];
-}
-
-// Product type definition
-export interface ProductData {
-  id: string;
-  name: string;
-  image: string;
-  sku: string;
-  isHighlighted?: boolean;
-  isSelected?: boolean;
-}
-
-// Define the hook interface
-interface UseStoreProductsResult {
-  executeProductSearchQuery: (params: {
-    includeProductSelectionId: string;
-    excludeProductSelectionId?: string;
-    limit?: number;
-    offset?: number;
-    locale?: string;
-    searchText?: string;
-  }) => Promise<ProductPagedSearchResponse | null>;
-  fetchUserStoreProducts: () => Promise<ProductSearchResult>;
-  fetchMasterStoreProducts: () => Promise<ProductSearchResult>;
-  addProductsToStore: (productIds: string[]) => Promise<boolean>;
-  removeProductsFromStore: (productIds: string[]) => Promise<boolean>;
-  createProduct: (productDraft: any) => Promise<boolean>;
-  searchStoreProducts: (searchText: string) => Promise<ProductSearchResult>;
-  searchMasterProducts: (searchText: string) => Promise<ProductSearchResult>;
-  loading: boolean;
-  error: Error | null;
-}
-
-interface CreateProductResponse {
-  createProduct?: {
-    id: string;
-    version: number;
-  };
-}
+import gql from 'graphql-tag';
+import { useCallback, useState } from 'react';
+import { useAuthContext } from '../../contexts/auth-context';
+import logger from '../../utils/logger';
+import {
+  addProductsToCache,
+  getProductsFromCache,
+  mergeCacheWithResults,
+  PRODUCTS_FROM_MASTER_TO_STORE_KEY,
+  PRODUCTS_FROM_STORE_TO_MASTER_KEY,
+  removeProductsFromCache,
+} from './cache-controller';
+import {
+  mapProductSearchResponse,
+  mapProdutProjectionResponse,
+} from './mapper';
+import {
+  CreateProductResponse,
+  ProductSearchResult,
+  ProductSelectionResponse,
+  UseStoreProductsResult,
+} from './types';
 
 // GraphQL mutation to update product selection
 const UPDATE_PRODUCT_SELECTION_MUTATION = gql`
@@ -126,113 +73,6 @@ const CREATE_PRODUCT_MUTATION = gql`
     }
   }
 `;
-
-// Cache keys and utilities
-const PRODUCTS_FROM_MASTER_TO_STORE_KEY = 'productsFromMasterToStore';
-const PRODUCTS_FROM_STORE_TO_MASTER_KEY = 'productsFromStoreToMaster';
-
-// Inline cache utilities
-const getCacheData = (cacheKey: string) => {
-  try {
-    const cached = localStorage.getItem(cacheKey);
-    return cached ? JSON.parse(cached) : {};
-  } catch (error) {
-    console.warn(`Failed to parse cache for key ${cacheKey}:`, error);
-    return {};
-  }
-};
-
-const setCacheData = (cacheKey: string, data: any) => {
-  try {
-    localStorage.setItem(cacheKey, JSON.stringify(data));
-  } catch (error) {
-    console.warn(`Failed to set cache for key ${cacheKey}:`, error);
-  }
-};
-
-const getProductsFromCache = (
-  cacheKey: string,
-  productSelectionId: string
-): ProductData[] => {
-  const cache = getCacheData(cacheKey);
-  return cache[productSelectionId] || [];
-};
-
-const addProductsToCache = (
-  cacheKey: string,
-  productSelectionId: string,
-  products: ProductData[]
-) => {
-  const cache = getCacheData(cacheKey);
-  if (!cache[productSelectionId]) {
-    cache[productSelectionId] = [];
-  }
-
-  products.forEach((product) => {
-    const exists = cache[productSelectionId].some(
-      (p: ProductData) => p.id === product.id
-    );
-    if (!exists) {
-      cache[productSelectionId].push(product);
-    }
-  });
-
-  setCacheData(cacheKey, cache);
-};
-
-const removeProductsFromCache = (
-  cacheKey: string,
-  productSelectionId: string,
-  productIds: string[]
-) => {
-  const cache = getCacheData(cacheKey);
-  if (cache[productSelectionId]) {
-    cache[productSelectionId] = cache[productSelectionId].filter(
-      (product: ProductData) => !productIds.includes(product.id)
-    );
-
-    if (cache[productSelectionId].length === 0) {
-      delete cache[productSelectionId];
-    }
-  }
-  setCacheData(cacheKey, cache);
-};
-
-const mergeCachedWithResults = (
-  actualResults: ProductData[],
-  cachedProducts: ProductData[],
-  cacheKey: string,
-  productSelectionId: string
-): ProductData[] => {
-  const actualProductIds = new Set(actualResults.map((p) => p.id));
-  const productsToRemoveFromCache: string[] = [];
-
-  // Find cached products that already exist in actual results
-  const uniqueCachedProducts = cachedProducts
-    .filter((cachedProduct) => {
-      if (actualProductIds.has(cachedProduct.id)) {
-        productsToRemoveFromCache.push(cachedProduct.id);
-        return false; // Don't include in final results
-      }
-      return true; // Include products that don't exist in actual results
-    })
-    .map((product) => ({
-      ...product,
-      isHighlighted: true,
-    }));
-
-  // Remove duplicates from cache
-  if (productsToRemoveFromCache.length > 0) {
-    removeProductsFromCache(
-      cacheKey,
-      productSelectionId,
-      productsToRemoveFromCache
-    );
-  }
-
-  // Merge actual results with unique cached products
-  return [...actualResults, ...uniqueCachedProducts];
-};
 
 const buildSearchQuery = (
   includeProductSelectionId: string,
@@ -523,7 +363,6 @@ const useStoreProducts = ({
               productIds
             );
 
-            
             if (productDataResponse?.results) {
               const addedProducts = productDataResponse.results.map(
                 (item, index: number) =>
@@ -624,7 +463,7 @@ const useStoreProducts = ({
         });
 
         // Update cache when products are removed from store
-        if (productSelectionId) {
+        if (productSelectionId && masterProductSelectionId) {
           try {
             // Remove from master-to-store cache
             removeProductsFromCache(
@@ -647,7 +486,7 @@ const useStoreProducts = ({
               if (removedProducts.length > 0) {
                 addProductsToCache(
                   PRODUCTS_FROM_STORE_TO_MASTER_KEY,
-                  productSelectionId,
+                  masterProductSelectionId,
                   removedProducts
                 );
                 logger.info(
@@ -839,7 +678,7 @@ const useStoreProducts = ({
 
   const fetchUserStoreProducts =
     useCallback(async (): Promise<ProductSearchResult> => {
-      if (!productSelectionId) {
+      if (!productSelectionId || !masterProductSelectionId) {
         console.warn('Product selection ID is required');
         return {
           total: 0,
@@ -853,26 +692,19 @@ const useStoreProducts = ({
         const result = await fetchStoreProducts(productSelectionId);
 
         // Merge with cached products from master-to-store
-        const cachedProducts = getProductsFromCache(
+        const mergedResults = mergeCacheWithResults(
+          result.results,
+          PRODUCTS_FROM_STORE_TO_MASTER_KEY,
           PRODUCTS_FROM_MASTER_TO_STORE_KEY,
-          productSelectionId
+          productSelectionId,
+          masterProductSelectionId
         );
 
-        if (cachedProducts.length > 0) {
-          const mergedResults = mergeCachedWithResults(
-            result.results,
-            cachedProducts,
-            PRODUCTS_FROM_MASTER_TO_STORE_KEY,
-            productSelectionId
-          );
-
-          logger.info(
-            `Merged ${cachedProducts.length} cached products with ${result.results.length} API results for user store`
-          );
-
+        if (mergedResults.length > 0) {
           return {
             ...result,
-            total: result.total + cachedProducts.length,
+            total:
+              result.total + (mergedResults.length - result.results.length),
             results: mergedResults,
           };
         }
@@ -902,27 +734,19 @@ const useStoreProducts = ({
           productSelectionId
         );
 
-        // Merge with cached products from store-to-master
-        const cachedProducts = getProductsFromCache(
+        const mergedResults = mergeCacheWithResults(
+          result.results,
+          PRODUCTS_FROM_MASTER_TO_STORE_KEY,
           PRODUCTS_FROM_STORE_TO_MASTER_KEY,
+          masterProductSelectionId,
           productSelectionId
         );
 
-        if (cachedProducts.length > 0) {
-          const mergedResults = mergeCachedWithResults(
-            result.results,
-            cachedProducts,
-            PRODUCTS_FROM_STORE_TO_MASTER_KEY,
-            productSelectionId
-          );
-
-          logger.info(
-            `Merged ${cachedProducts.length} cached products with ${result.results.length} API results for master store`
-          );
-
+        if (mergedResults.length > 0) {
           return {
             ...result,
-            total: result.total + cachedProducts.length,
+            total:
+              result.total + (mergedResults.length - result.results.length),
             results: mergedResults,
           };
         }
@@ -936,7 +760,7 @@ const useStoreProducts = ({
 
   const searchStoreProducts = useCallback(
     async (searchText: string): Promise<ProductSearchResult> => {
-      if (!productSelectionId) {
+      if (!productSelectionId || !masterProductSelectionId) {
         console.warn('Product selection ID is required');
         return {
           total: 0,
@@ -950,35 +774,21 @@ const useStoreProducts = ({
         const result = await searchProductsFunc(productSelectionId, searchText);
 
         // Merge with cached products from master-to-store
-        const cachedProducts = getProductsFromCache(
+        const mergedResults = mergeCacheWithResults(
+          result.results,
+          PRODUCTS_FROM_STORE_TO_MASTER_KEY,
           PRODUCTS_FROM_MASTER_TO_STORE_KEY,
-          productSelectionId
+          productSelectionId,
+          masterProductSelectionId
         );
 
-        if (cachedProducts.length > 0) {
-          // Filter cached products based on search text
-          const filteredCachedProducts = cachedProducts.filter((product) =>
-            product.name.toLowerCase().includes(searchText.toLowerCase())
-          );
-
-          if (filteredCachedProducts.length > 0) {
-            const mergedResults = mergeCachedWithResults(
-              result.results,
-              filteredCachedProducts,
-              PRODUCTS_FROM_MASTER_TO_STORE_KEY,
-              productSelectionId
-            );
-
-            logger.info(
-              `Merged ${filteredCachedProducts.length} filtered cached products with ${result.results.length} API results for store search`
-            );
-
-            return {
-              ...result,
-              total: result.total + filteredCachedProducts.length,
-              results: mergedResults,
-            };
-          }
+        if (mergedResults.length > 0) {
+          return {
+            ...result,
+            total:
+              result.total + (mergedResults.length - result.results.length),
+            results: mergedResults,
+          };
         }
 
         return result;
@@ -1009,35 +819,21 @@ const useStoreProducts = ({
         );
 
         // Merge with cached products from store-to-master
-        const cachedProducts = getProductsFromCache(
+        const mergedResults = mergeCacheWithResults(
+          result.results,
+          PRODUCTS_FROM_MASTER_TO_STORE_KEY,
           PRODUCTS_FROM_STORE_TO_MASTER_KEY,
+          masterProductSelectionId,
           productSelectionId
         );
 
-        if (cachedProducts.length > 0) {
-          // Filter cached products based on search text
-          const filteredCachedProducts = cachedProducts.filter((product) =>
-            product.name.toLowerCase().includes(searchText.toLowerCase())
-          );
-
-          if (filteredCachedProducts.length > 0) {
-            const mergedResults = mergeCachedWithResults(
-              result.results,
-              filteredCachedProducts,
-              PRODUCTS_FROM_STORE_TO_MASTER_KEY,
-              productSelectionId
-            );
-
-            logger.info(
-              `Merged ${filteredCachedProducts.length} filtered cached products with ${result.results.length} API results for master search`
-            );
-
-            return {
-              ...result,
-              total: result.total + filteredCachedProducts.length,
-              results: mergedResults,
-            };
-          }
+        if (mergedResults.length > 0) {
+          return {
+            ...result,
+            total:
+              result.total + (mergedResults.length - result.results.length),
+            results: mergedResults,
+          };
         }
 
         return result;

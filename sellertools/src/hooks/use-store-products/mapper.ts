@@ -1,4 +1,7 @@
-import { ProductProjection, ProductSearchResult } from '@commercetools/platform-sdk';
+import {
+  ProductProjection,
+  ProductSearchResult,
+} from '@commercetools/platform-sdk';
 
 export const mapProductSearchResponse = (
   product: ProductSearchResult,

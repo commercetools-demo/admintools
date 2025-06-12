@@ -11,7 +11,7 @@ import messages from './messages';
 import { CheckboxCell, ImageCell } from './products';
 import styles from './products.module.css';
 import { useProductWrapper } from './store-products-wrapper';
-import { ProductData } from '../../hooks/use-store-products/use-store-products';
+import { ProductData } from '../../hooks/use-store-products/types';
 
 const StoreProductTable = () => {
   const intl = useIntl();
@@ -41,9 +41,8 @@ const StoreProductTable = () => {
       label: 'Select',
       renderItem: (item: ProductData) => (
         <CheckboxCell
-          isSelected={item.isSelected}
+          item={item}
           onToggle={() => handleStoreProductSelection(item.id)}
-          productId={item.id}
           tableId="store"
         />
       ),
