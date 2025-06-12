@@ -1,40 +1,25 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { useCustomObject } from '../../hooks/use-custom-objects';
-import AiAssistant from '.';
-import { signWithJose } from './utils';
-import { useAuthContext } from '../../contexts/auth-context';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
-import axios from 'axios';
-import {
-  AI_ASSISTANT_DEPLOYED_URL_KEY,
-  SHARED_CONTAINER,
-} from '../../constants';
+import { useEffect, useState } from 'react';
+import AiAssistant from '.';
+import { AI_ASSISTANT_DEPLOYED_URL_KEY } from '../../constants';
+import { useAuthContext } from '../../contexts/auth-context';
+import { useExternalUrl } from '../../hooks/use-external-url';
+import { signWithJose } from './utils';
 
 const AIAssistantWrapper = () => {
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const { getCustomObject } = useCustomObject(SHARED_CONTAINER);
-  const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [token, setToken] = useState<string>('');
-
-  const [isHealthy, setIsHealthy] = useState(isDevelopment);
-  const { environment, project } = useApplicationContext();
   const { storeKey } = useAuthContext();
+  const [token, setToken] = useState<string>('');
+  const { environment } = useApplicationContext();
 
-  const fetchDeployedUrl = useCallback(async () => {
-    try {
-      const deployedUrlResult = await getCustomObject(
-        AI_ASSISTANT_DEPLOYED_URL_KEY
-      );
-      setDeployedUrl(deployedUrlResult?.value);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error fetching deployed URL:', error);
-      setIsLoading(false);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getCustomObject]);
+  const { deployedUrl, isLoading, isHealthy } = useExternalUrl({
+    storedUrlKey: AI_ASSISTANT_DEPLOYED_URL_KEY,
+    ...(storeKey && { healthCheckUrl: `/ping?storeKey=${storeKey}` }),
+    ...(token && {
+      healthCheckHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
+    }),
+  });
 
   // Generate token on component mount
   useEffect(() => {
@@ -52,30 +37,6 @@ const AIAssistantWrapper = () => {
 
     generateToken();
   }, [storeKey]);
-
-  useEffect(() => {
-    fetchDeployedUrl();
-  }, [fetchDeployedUrl]);
-
-  useEffect(() => {
-    const checkHealth = async () => {
-      const result = await axios.get(
-        `${deployedUrl}/ping?storeKey=${storeKey}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setIsHealthy(
-        result.status === 200 && result.data.projectkey === project?.key
-      );
-    };
-
-    if (deployedUrl && storeKey && token && !isDevelopment) {
-      checkHealth();
-    }
-  }, [deployedUrl, storeKey, token, isDevelopment]);
 
   if (!deployedUrl || isLoading || !token || !isHealthy) {
     return null;

@@ -37,9 +37,6 @@ deployAs:
           description: one of the following gcp-us, gcp-eu, aws-us, aws-eu
           required: true
           default: "gcp-us"
-        - key: CMS_API_URL
-          description: CMS API URL
-          required: true
   - name: chat
     applicationType: service
     scripts:
@@ -47,23 +44,6 @@ deployAs:
     endpoint: /chat
     configuration:
       standardConfiguration:
-        - key: CTP_AUTH_URL
-          description: commercetools Composable Commerce auth URL
-          required: true
-          default: "https://auth.us-central1.gcp.commercetools.com"
-        - key: CTP_API_URL
-          description: commercetools Composable Commerce API URL
-          required: true
-          default: "https://api.us-central1.gcp.commercetools.com"
-        - key: CTP_PROJECT_KEY
-          description: commercetools Composable Commerce project key
-          required: true
-        - key: CTP_CLIENT_ID
-          description: commercetools Composable Commerce client ID
-          required: true
-        - key: CTP_SCOPE
-          description: commercetools Composable Commerce client scope
-          required: true
         - key: AI_PROVIDER
           description: AI provider to use (anthropic, openai)
           default: "anthropic"
@@ -76,18 +56,60 @@ deployAs:
           description: System prompt
           required: false
       securedConfiguration:
-        - key: CTP_CLIENT_SECRET
-          description: commercetools Composable Commerce client secret
-          required: true
         - key: ANTHROPIC_API_KEY
           description: Anthropic API key
           required: false
         - key: OPENAI_API_KEY
           description: OpenAI API key
           required: false
+  - name: cms
+    applicationType: service
+    scripts:
+      postDeploy: node build/connector/post-deploy.js
+    endpoint: /cms
+    configuration:
+      standardConfiguration:
+      - key: STORAGE_TYPE
+        description: Storage type (gcp)
+        required: false
+        default: gcp
+      - key: GCP_BUCKET_NAME
+        description: GCP Bucket Name (only used if STORAGE_TYPE is gcp)
+        required: false
+      - key: GCP_PROJECT_ID
+        description: GCP Project ID (only used if STORAGE_TYPE is gcp)
+        required: false
+      - key: GCP_CLIENT_EMAIL
+        description: GCP Client Email (only used if STORAGE_TYPE is gcp)
+        required: false
+    securedConfiguration:
+      - key: GCP_PRIVATE_KEY
+          description: GCP Private Key (only used if STORAGE_TYPE is gcp)
+          required: false
 inheritAs:
   configuration:
+    standardConfiguration:
+      - key: CTP_AUTH_URL
+        description: commercetools Composable Commerce auth URL
+        required: true
+        default: "https://auth.us-central1.gcp.commercetools.com"
+      - key: CTP_API_URL
+        description: commercetools Composable Commerce API URL
+        required: true
+        default: "https://api.us-central1.gcp.commercetools.com"
+      - key: CTP_PROJECT_KEY
+        description: commercetools Composable Commerce project key
+        required: true
+      - key: CTP_CLIENT_ID
+        description: commercetools Composable Commerce client ID
+        required: true
+      - key: CTP_SCOPE
+        description: commercetools Composable Commerce client scope
+        required: true
     securedConfiguration:
       - key: JWT_SECRET
         description: JWT secret
+        required: true
+      - key: CTP_CLIENT_SECRET
+        description: commercetools Composable Commerce client secret
         required: true
