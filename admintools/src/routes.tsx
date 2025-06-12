@@ -5,6 +5,7 @@ import AdminDashboard from './components/admin-dashboard';
 import OnboardSeller from './components/onboard-seller';
 import ManageInvites from './components/manage-invites';
 import ManageSellertools from './components/manage-sellertools';
+import ManageFeatureFlags from './components/manage-feature-flags';
 
 type ApplicationRoutesProps = {
   children?: ReactNode;
@@ -34,6 +35,9 @@ const ApplicationRoutes = (_props: ApplicationRoutesProps) => {
         </Route>
         <Route path={`${match.path}/manage-sellertools`}>
           <ManageSellertools />
+        </Route>
+        <Route path={`${match.path}/manage-feature-flags`}>
+          <ManageFeatureFlags />
         </Route>
         <Route>
           <AdminDashboard />

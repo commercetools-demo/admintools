@@ -20,6 +20,8 @@ import type { PetInfo } from '../../hooks/use-customer-pets';
 import { useClassNames } from '../../utils/use-classnames';
 import styles from './customers.module.css';
 import PetCard from './pet-card';
+import { FEATURE_FLAG_VET_KEY } from '../../constants';
+import { useFeatureFlagContext } from '../../contexts/feature-flag-context';
 
 // Define the Order interface
 interface Order {
@@ -91,7 +93,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [customer, setCustomer] = useState<Customer | null>(null);
-
+  const { featureFlags } = useFeatureFlagContext();
   // Fetch customer data, orders, and pets when modal opens
   useEffect(() => {
     if (customerId) {
@@ -442,37 +444,40 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({
             </Card>
 
             {/* Pets Section */}
-            <Card>
-              <Spacings.Stack scale="m">
-                <div className={styles.sectionDivider}>
-                  <Spacings.Inline alignItems="center" scale="xs">
-                    <HeartIcon size="medium" color="neutral60" />
-                    <div className={styles.sectionHeader}>
-                      <Text.Subheadline as="h4" isBold>
-                        Pets
-                      </Text.Subheadline>
+            {typeof featureFlags[FEATURE_FLAG_VET_KEY] !== 'undefined' &&
+              featureFlags[FEATURE_FLAG_VET_KEY] !== false && (
+                <Card>
+                  <Spacings.Stack scale="m">
+                    <div className={styles.sectionDivider}>
+                      <Spacings.Inline alignItems="center" scale="xs">
+                        <HeartIcon size="medium" color="neutral60" />
+                        <div className={styles.sectionHeader}>
+                          <Text.Subheadline as="h4" isBold>
+                            Pets
+                          </Text.Subheadline>
+                        </div>
+                      </Spacings.Inline>
                     </div>
-                  </Spacings.Inline>
-                </div>
 
-                {loadingPets ? (
-                  <div className={styles.petLoadingContainer}>
-                    <LoadingSpinner scale="s" />
-                    <Text.Body>Loading pet information...</Text.Body>
-                  </div>
-                ) : pets.length === 0 ? (
-                  <div className={styles.emptyMessage}>
-                    <Text.Body>No pets found for this customer</Text.Body>
-                  </div>
-                ) : (
-                  <div className={styles.petsDetailGrid}>
-                    {pets.map((pet) => (
-                      <PetCard key={`pet-${pet.id}`} pet={pet} />
-                    ))}
-                  </div>
-                )}
-              </Spacings.Stack>
-            </Card>
+                    {loadingPets ? (
+                      <div className={styles.petLoadingContainer}>
+                        <LoadingSpinner scale="s" />
+                        <Text.Body>Loading pet information...</Text.Body>
+                      </div>
+                    ) : pets.length === 0 ? (
+                      <div className={styles.emptyMessage}>
+                        <Text.Body>No pets found for this customer</Text.Body>
+                      </div>
+                    ) : (
+                      <div className={styles.petsDetailGrid}>
+                        {pets.map((pet) => (
+                          <PetCard key={`pet-${pet.id}`} pet={pet} />
+                        ))}
+                      </div>
+                    )}
+                  </Spacings.Stack>
+                </Card>
+              )}
           </Spacings.Stack>
         </Constraints.Horizontal>
       </InfoModalPage>

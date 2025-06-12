@@ -11,6 +11,7 @@ import {
   PRODUCT_SELECTION_KEY,
   CUSTOMER_GROUP_KEY,
   STORE_KEY,
+  FEATURE_FLAGS_KEY,
 } from '../../constants';
 
 interface CommercetoolsError {
@@ -23,7 +24,7 @@ export const useCustomObject = () => {
   const dispatchAppsRead = useAsyncDispatch<TSdkAction, any>();
 
   const setCustomObject = useCallback(
-    async (key: string, value: string) => {
+    async (key: string, value: string | boolean) => {
       try {
         await dispatchAppsRead(
           actions.post({
@@ -103,10 +104,29 @@ export const useCustomObject = () => {
     [setCustomObject]
   );
 
+  const getFeatureFlags = useCallback(async () => {
+    const result = await getCustomObject(FEATURE_FLAGS_KEY);
+    return result?.value || {};
+  }, [getCustomObject]);
+
+  const setFeatureFlagsContext = useCallback(
+    async (featureflags: Record<string, boolean>) => {
+      getFeatureFlags().then((currentFlags) => {
+        return setCustomObject(FEATURE_FLAGS_KEY, {
+          ...currentFlags,
+          ...featureflags,
+        });
+      });
+    },
+    [setCustomObject, getFeatureFlags]
+  );
+
   return {
     getSelectedProductSelection,
     getSelectedCustomerGroup,
     getSelectedStore,
     setSellertoolsContext,
+    getFeatureFlags,
+    setFeatureFlagsContext,
   };
 };

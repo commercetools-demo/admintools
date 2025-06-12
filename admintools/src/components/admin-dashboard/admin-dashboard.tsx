@@ -42,6 +42,10 @@ const AdminDashboard = () => {
     history.push(`${match.url}/manage-sellertools`);
   };
 
+  const handleManageFeatureFlags = () => {
+    history.push(`${match.url}/manage-feature-flags`);
+  };
+
   return (
     <div className={styles.dashboardContainer}>
       <div className={styles.headerContainer}>
@@ -64,6 +68,11 @@ const AdminDashboard = () => {
           title="Manage Sellertools"
           icon={<GearIcon size="big" color="surface" />}
           onClick={handleManageSellertools}
+        />
+        <DashboardCard
+          title="Manage Feature Flags"
+          icon={<GearIcon size="big" color="surface" />}
+          onClick={handleManageFeatureFlags}
         />
       </div>
     </div>
