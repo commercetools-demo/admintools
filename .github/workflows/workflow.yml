@@ -36,11 +36,6 @@ jobs:
           commercetools connect connectorstaged update \
             --id ${{ vars.CONNECTOR_ID }} \
             --repository-tag ${{ github.ref_name }}
-            
-      - name: Publish connector
-        run: |
-          commercetools connect connectorstaged publish \
-            --id ${{ vars.CONNECTOR_ID }}
 
       - name: Generate deployment key
         id: deployment-key
