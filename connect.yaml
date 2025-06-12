@@ -1,5 +1,5 @@
 deployAs:
-  - name: app
+  - name: admintools
     applicationType: merchant-center-custom-application
     configuration:
       standardConfiguration:
