@@ -9,13 +9,13 @@ import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import { useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useAuthContext } from '../../contexts/auth-context';
 import useStoreProducts from '../../hooks/use-store-products/use-store-products';
 import logger from '../../utils/logger';
 import messages from './messages';
-import { CheckboxCell, ImageCell, ProductData } from './products';
+import { CheckboxCell, ImageCell } from './products';
 import styles from './products.module.css';
 import { useProductWrapper } from './store-products-wrapper';
+import { ProductData } from '../../hooks/use-store-products/types';
 
 const MasterProductTable = () => {
   const intl = useIntl();
@@ -23,7 +23,6 @@ const MasterProductTable = () => {
   const latestSearchQueryRef = useRef<string>('');
 
   const { fetchUserStoreProducts } = useProductWrapper();
-  const { storeKey } = useAuthContext();
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,7 +30,6 @@ const MasterProductTable = () => {
   const [error, setError] = useState<Error | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [masterProducts, setMasterProducts] = useState<ProductData[]>([]);
-  const [pendingSearches, setPendingSearches] = useState(0);
   const [isAddingProducts, setIsAddingProducts] = useState(false);
   const [total, setTotal] = useState(0);
 
@@ -56,9 +54,8 @@ const MasterProductTable = () => {
       label: 'Select',
       renderItem: (item: ProductData) => (
         <CheckboxCell
-          isSelected={item.isSelected}
+          item={item}
           onToggle={() => handleProductSelection(item.id)}
-          productId={item.id}
           tableId="master"
         />
       ),
@@ -73,6 +70,27 @@ const MasterProductTable = () => {
     { key: 'name', label: 'Product Name', width: '50%' },
     { key: 'sku', label: 'SKU', width: '25%', isTruncated: true },
   ];
+
+  const handleAddProductsToStore = async () => {
+    if (selectedProducts.length === 0) return;
+
+    setIsAddingProducts(true);
+    try {
+      const success = await addProductsToStore(selectedProducts);
+
+      if (success) {
+        // Refresh the store products to show the newly added items
+        await fetchUserStoreProducts();
+        await fetchMasterProducts();
+        // Clear selections after successful addition
+        setSelectedProducts([]);
+      }
+    } catch (err) {
+      logger.error('Error adding products to store:', err);
+    } finally {
+      setIsAddingProducts(false);
+    }
+  };
 
   const fetchMasterProducts = async () => {
     setIsLoading(true);
@@ -121,8 +139,6 @@ const MasterProductTable = () => {
     // Keep track of the current search query
     latestSearchQueryRef.current = searchQuery;
 
-    // Increase the pending searches counter
-    setPendingSearches((prev) => prev + 1);
     setIsSearching(true);
     setError(null);
 
@@ -162,18 +178,7 @@ const MasterProductTable = () => {
         );
       }
     } finally {
-      // Decrease the pending searches counter
-      setPendingSearches((prev) => {
-        const newCount = prev - 1;
-        // Only update loading state when all searches are done
-        if (
-          newCount === 0 &&
-          currentSearchQuery === latestSearchQueryRef.current
-        ) {
-          setIsSearching(false);
-        }
-        return newCount;
-      });
+      setIsSearching(false);
     }
   };
 
@@ -252,28 +257,7 @@ const MasterProductTable = () => {
                     ? intl.formatMessage(messages.adding)
                     : intl.formatMessage(messages.addToStore)
                 }
-                onClick={async () => {
-                  if (selectedProducts.length === 0) return;
-
-                  setIsAddingProducts(true);
-                  try {
-                    const success = await addProductsToStore(
-                      storeKey!,
-                      selectedProducts
-                    );
-
-                    if (success) {
-                      // Refresh the store products to show the newly added items
-                      await fetchUserStoreProducts();
-                      // Clear selections after successful addition
-                      setSelectedProducts([]);
-                    }
-                  } catch (err) {
-                    logger.error('Error adding products to store:', err);
-                  } finally {
-                    setIsAddingProducts(false);
-                  }
-                }}
+                onClick={handleAddProductsToStore}
                 isDisabled={isAddingProducts}
               />
             </Spacings.Inline>

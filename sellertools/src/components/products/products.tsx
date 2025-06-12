@@ -14,19 +14,13 @@ import ProductForm from './product-form';
 import styles from './products.module.css';
 import StoreProductTable from './store-product-table';
 import { useProductWrapper } from './store-products-wrapper';
+import { ProductData } from '../../hooks/use-store-products/types';
+import LoadingSpinner from '@commercetools-uikit/loading-spinner';
+import CheckboxInput from '@commercetools-uikit/checkbox-input';
 
 interface ProductsProps {
   onBack: () => void;
   linkToWelcome: string;
-}
-
-// Product type definition
-export interface ProductData {
-  id: string;
-  name: string;
-  image: string;
-  sku: string;
-  isSelected?: boolean;
 }
 
 // Custom cell renderer for the image column
@@ -51,39 +45,24 @@ export const ImageCell = ({ value }: { value: string }) => {
 
 // Custom cell renderer for the checkbox column
 export const CheckboxCell = ({
-  isSelected,
+  item,
   onToggle,
-  productId,
   tableId,
 }: {
-  isSelected?: boolean;
+  item: ProductData;
   onToggle: () => void;
-  productId: string;
   tableId: string;
 }) => (
   <div className={styles.checkboxContainer}>
-    <div className={styles.checkboxLabelHidden}>
-      <label htmlFor={`${tableId}-product-${productId}`}>
-        select product {productId}
-      </label>
-    </div>
-    <label
-      htmlFor={`${tableId}-product-${productId}`}
-      className={styles.checkboxLabel}
-    >
-      <input
-        type="checkbox"
-        aria-checked={isSelected || false}
-        id={`${tableId}-product-${productId}`}
-        checked={isSelected || false}
+    {!item.isHighlighted ? (
+      <CheckboxInput
+        id={`${tableId}-product-${item.id}`}
+        isChecked={item.isSelected || false}
         onChange={onToggle}
-        className={styles.checkbox}
-        value=""
       />
-      <div className={styles.checkboxVisual}>
-        <div className={isSelected ? styles.checkboxChecked : ''}></div>
-      </div>
-    </label>
+    ) : (
+      <LoadingSpinner />
+    )}
   </div>
 );
 

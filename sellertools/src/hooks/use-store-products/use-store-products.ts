@@ -7,48 +7,38 @@ import {
   GRAPHQL_TARGETS,
   MC_API_PROXY_TARGETS,
 } from '@commercetools-frontend/constants';
-import { TState } from '@commercetools-uikit/hooks';
-import gql from 'graphql-tag';
-import { useCallback, useState } from 'react';
-import logger from '../../utils/logger';
-import { useAuthContext } from '../../contexts/auth-context';
-import { mapProductSearchResponse } from './mapper';
 import {
   actions,
   TSdkAction,
   useAsyncDispatch,
 } from '@commercetools-frontend/sdk';
-import { ProductPagedSearchResponse } from '@commercetools/platform-sdk';
-interface ProductSelectionResponse {
-  productSelection?: {
-    id: string;
-    version: number;
-    productRefs?: {
-      results: Array<{
-        product: {
-          id: string;
-          masterData: {
-            current: {
-              name: string;
-              masterVariant: {
-                images?: Array<{ url: string }>;
-                sku?: string;
-                key?: string;
-              };
-            };
-          };
-        };
-      }>;
-    };
-  };
-}
-
-interface CreateProductResponse {
-  createProduct?: {
-    id: string;
-    version: number;
-  };
-}
+import { TState } from '@commercetools-uikit/hooks';
+import {
+  ProductPagedSearchResponse,
+  ProductProjectionPagedQueryResponse,
+} from '@commercetools/platform-sdk';
+import gql from 'graphql-tag';
+import { useCallback, useState } from 'react';
+import { useAuthContext } from '../../contexts/auth-context';
+import logger from '../../utils/logger';
+import {
+  addProductsToCache,
+  getProductsFromCache,
+  mergeCacheWithResults,
+  PRODUCTS_FROM_MASTER_TO_STORE_KEY,
+  PRODUCTS_FROM_STORE_TO_MASTER_KEY,
+  removeProductsFromCache,
+} from './cache-controller';
+import {
+  mapProductSearchResponse,
+  mapProdutProjectionResponse,
+} from './mapper';
+import {
+  CreateProductResponse,
+  ProductSearchResult,
+  ProductSelectionResponse,
+  UseStoreProductsResult,
+} from './types';
 
 // GraphQL mutation to update product selection
 const UPDATE_PRODUCT_SELECTION_MUTATION = gql`
@@ -65,9 +55,19 @@ const UPDATE_PRODUCT_SELECTION_MUTATION = gql`
 `;
 
 // GraphQL query to get product selection ID and version by key
-const GET_PRODUCT_SELECTION_BY_KEY = gql`
-  query GetProductSelectionByKey($key: String!) {
-    productSelection(key: $key) {
+const GET_PRODUCT_SELECTION_BY_ID = gql`
+  query GetProductSelectionById($id: String!) {
+    productSelection(id: $id) {
+      id
+      version
+    }
+  }
+`;
+
+// GraphQL mutation to create a product
+const CREATE_PRODUCT_MUTATION = gql`
+  mutation CreateProduct($draft: ProductDraft!) {
+    createProduct(draft: $draft) {
       id
       version
     }
@@ -124,58 +124,6 @@ const buildSearchQuery = (
   return query;
 };
 
-// GraphQL mutation to create a product
-const CREATE_PRODUCT_MUTATION = gql`
-  mutation CreateProduct($draft: ProductDraft!) {
-    createProduct(draft: $draft) {
-      id
-      version
-    }
-  }
-`;
-
-export interface ProductSearchResult {
-  total: number;
-  offset: number;
-  limit: number;
-  results: ProductData[];
-}
-
-// Product type definition
-export interface ProductData {
-  id: string;
-  name: string;
-  image: string;
-  sku: string;
-}
-
-// Define the hook interface
-interface UseStoreProductsResult {
-  executeProductSearchQuery: (params: {
-    includeProductSelectionId: string;
-    excludeProductSelectionId?: string;
-    limit?: number;
-    offset?: number;
-    locale?: string;
-    searchText?: string;
-  }) => Promise<ProductPagedSearchResponse | null>;
-  fetchUserStoreProducts: () => Promise<ProductSearchResult>;
-  fetchMasterStoreProducts: () => Promise<ProductSearchResult>;
-  addProductsToStore: (
-    storeKey: string,
-    productIds: string[]
-  ) => Promise<boolean>;
-  removeProductsFromStore: (
-    storeKey: string,
-    productIds: string[]
-  ) => Promise<boolean>;
-  createProduct: (productDraft: any) => Promise<boolean>;
-  searchStoreProducts: (searchText: string) => Promise<ProductSearchResult>;
-  searchMasterProducts: (searchText: string) => Promise<ProductSearchResult>;
-  loading: boolean;
-  error: Error | null;
-}
-
 const useStoreProducts = ({
   page,
   perPage,
@@ -189,12 +137,33 @@ const useStoreProducts = ({
     dataLocale: context.dataLocale ?? 'en-us',
     project: context.project,
   }));
-  const dispatchAppsRead = useAsyncDispatch<
+  const dispatchProductSearch = useAsyncDispatch<
     TSdkAction,
     ProductPagedSearchResponse
   >();
+  const dispatchProductProjection = useAsyncDispatch<
+    TSdkAction,
+    ProductProjectionPagedQueryResponse
+  >();
 
   const { masterProductSelectionId, productSelectionId } = useAuthContext();
+
+  const getProductProjectionFromIDs = useCallback(
+    async (productIds: string[]) => {
+      if (!productIds.length) {
+        return {} as ProductProjectionPagedQueryResponse;
+      }
+      const where = `id in (${productIds.map((id) => `"${id}"`).join(', ')})`;
+      const result = await dispatchProductProjection(
+        actions.get({
+          mcApiProxyTarget: MC_API_PROXY_TARGETS.COMMERCETOOLS_PLATFORM,
+          uri: `/${project?.key}/product-projections?where=${where}`,
+        })
+      );
+      return result;
+    },
+    [dataLocale, dispatchProductProjection, project?.key]
+  );
 
   const executeProductSearchQuery = useCallback(
     async ({
@@ -213,7 +182,7 @@ const useStoreProducts = ({
       searchText?: string;
     }) => {
       try {
-        const result = await dispatchAppsRead(
+        const result = await dispatchProductSearch(
           actions.post({
             mcApiProxyTarget: MC_API_PROXY_TARGETS.COMMERCETOOLS_PLATFORM,
             uri: `/${project?.key}/products/search`,
@@ -238,14 +207,14 @@ const useStoreProducts = ({
         return null;
       }
     },
-    [project?.key, dispatchAppsRead]
+    [project?.key, dispatchProductSearch]
   );
 
-  const { refetch: getProductSelectionByKey } = useMcQuery(
-    GET_PRODUCT_SELECTION_BY_KEY,
+  const { refetch: getProductSelectionById } = useMcQuery(
+    GET_PRODUCT_SELECTION_BY_ID,
     {
       variables: {
-        key: 'placeholder', // Will be overridden
+        id: 'placeholder', // Will be overridden
       },
       context: {
         target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
@@ -340,7 +309,7 @@ const useStoreProducts = ({
   );
 
   const addProductsToStore = useCallback(
-    async (storeKey: string, productIds: string[]): Promise<boolean> => {
+    async (productIds: string[]): Promise<boolean> => {
       if (!productIds.length) {
         logger.warn('No products selected to add');
         return false;
@@ -350,20 +319,18 @@ const useStoreProducts = ({
       setError(null);
 
       try {
-        logger.info(
-          `Adding ${productIds.length} products to store ${storeKey}`
-        );
-
         // Step 1: Get the product selection ID and version
-        const { data: selectionData } = (await getProductSelectionByKey({
-          key: storeKey,
+        const { data: selectionData } = (await getProductSelectionById({
+          id: productSelectionId,
         })) as { data: ProductSelectionResponse };
 
         if (!selectionData?.productSelection?.id) {
-          throw new Error(`Product selection for store ${storeKey} not found`);
+          throw new Error(
+            `Product selection for product selection ${productSelectionId} not found`
+          );
         }
 
-        const selectionId = selectionData.productSelection.id;
+        const selectionId = productSelectionId;
         const version = selectionData.productSelection.version;
 
         logger.info(
@@ -388,25 +355,64 @@ const useStoreProducts = ({
           },
         });
 
+        // Update cache when products are added to store
+        if (productSelectionId) {
+          try {
+            // We need to fetch the product data to add to cache
+            const productDataResponse = await getProductProjectionFromIDs(
+              productIds
+            );
+
+            if (productDataResponse?.results) {
+              const addedProducts = productDataResponse.results.map(
+                (item, index: number) =>
+                  mapProdutProjectionResponse(item, index, dataLocale)
+              );
+
+              console.log('Added addedProducts', addedProducts);
+              if (addedProducts.length > 0) {
+                addProductsToCache(
+                  PRODUCTS_FROM_MASTER_TO_STORE_KEY,
+                  productSelectionId,
+                  addedProducts
+                );
+                logger.info(
+                  `Added ${addedProducts.length} products to master-to-store cache`
+                );
+              }
+            }
+          } catch (cacheError) {
+            logger.warn(
+              'Failed to update cache after adding products:',
+              cacheError
+            );
+          }
+        }
+
         logger.info('Product selection updated successfully:', result);
         return true;
       } catch (err) {
-        logger.error(`Error adding products to store ${storeKey}:`, err);
+        logger.error(
+          `Error adding products to product selection ${productSelectionId}:`,
+          err
+        );
         setError(
           err instanceof Error
             ? err
-            : new Error(`Unknown error adding products to store ${storeKey}`)
+            : new Error(
+                `Unknown error adding products to product selection ${productSelectionId}`
+              )
         );
         return false;
       } finally {
         setLoading(false);
       }
     },
-    [getProductSelectionByKey, updateProductSelection]
+    [getProductSelectionById, updateProductSelection, productSelectionId]
   );
 
   const removeProductsFromStore = useCallback(
-    async (storeKey: string, productIds: string[]): Promise<boolean> => {
+    async (productIds: string[]): Promise<boolean> => {
       if (!productIds.length) {
         logger.warn('No products selected to remove');
         return false;
@@ -417,16 +423,18 @@ const useStoreProducts = ({
 
       try {
         logger.info(
-          `Removing ${productIds.length} products from store ${storeKey}`
+          `Removing ${productIds.length} products from product selection ${productSelectionId}`
         );
 
         // Step 1: Get the product selection ID and version
-        const { data: selectionData } = (await getProductSelectionByKey({
-          key: storeKey,
+        const { data: selectionData } = (await getProductSelectionById({
+          id: productSelectionId,
         })) as { data: ProductSelectionResponse };
 
         if (!selectionData?.productSelection?.id) {
-          throw new Error(`Product selection for store ${storeKey} not found`);
+          throw new Error(
+            `Product selection for product selection ${productSelectionId} not found`
+          );
         }
 
         const selectionId = selectionData.productSelection.id;
@@ -454,15 +462,58 @@ const useStoreProducts = ({
           },
         });
 
+        // Update cache when products are removed from store
+        if (productSelectionId && masterProductSelectionId) {
+          try {
+            // Remove from master-to-store cache
+            removeProductsFromCache(
+              PRODUCTS_FROM_MASTER_TO_STORE_KEY,
+              productSelectionId,
+              productIds
+            );
+
+            // Get the removed product data to add to store-to-master cache
+            const productDataResponse = await getProductProjectionFromIDs(
+              productIds
+            );
+
+            if (productDataResponse?.results) {
+              const removedProducts = productDataResponse.results.map(
+                (item, index: number) =>
+                  mapProdutProjectionResponse(item, index, dataLocale)
+              );
+
+              if (removedProducts.length > 0) {
+                addProductsToCache(
+                  PRODUCTS_FROM_STORE_TO_MASTER_KEY,
+                  masterProductSelectionId,
+                  removedProducts
+                );
+                logger.info(
+                  `Added ${removedProducts.length} products to store-to-master cache`
+                );
+              }
+            }
+          } catch (cacheError) {
+            logger.warn(
+              'Failed to update cache after removing products:',
+              cacheError
+            );
+          }
+        }
+
         logger.info('Products successfully removed from selection:', result);
         return true;
       } catch (err) {
-        logger.error(`Error removing products from store ${storeKey}:`, err);
+        logger.error(
+          `Error removing products from product selection ${productSelectionId}:`,
+          err
+        );
         setError(
           err instanceof Error
             ? err
             : new Error(
-                `Unknown error removing products from store ${storeKey}`
+                `Unknown error removing products from product selection ${productSelectionId}`
               )
         );
         return false;
@@ -470,7 +521,7 @@ const useStoreProducts = ({
         setLoading(false);
       }
     },
-    [getProductSelectionByKey, updateProductSelection]
+    [getProductSelectionById, updateProductSelection, productSelectionId]
   );
 
   // Function to create a new product
@@ -539,7 +590,7 @@ const useStoreProducts = ({
         const storeKey = productDraft.masterVariant.prices[0].channel.key;
 
         // Add the newly created product to the store's product selection
-        await addProductsToStore(storeKey, [productId]);
+        await addProductsToStore([productId]);
         logger.info(`Product ${productId} added to store ${storeKey}`);
       } else {
         logger.warn(
@@ -627,7 +678,7 @@ const useStoreProducts = ({
 
   const fetchUserStoreProducts =
     useCallback(async (): Promise<ProductSearchResult> => {
-      if (!productSelectionId) {
+      if (!productSelectionId || !masterProductSelectionId) {
         console.warn('Product selection ID is required');
         return {
           total: 0,
@@ -636,7 +687,33 @@ const useStoreProducts = ({
           results: [],
         };
       }
-      return fetchStoreProducts(productSelectionId);
+
+      try {
+        const result = await fetchStoreProducts(productSelectionId);
+
+        // Merge with cached products from master-to-store
+        const mergedResults = mergeCacheWithResults(
+          result.results,
+          PRODUCTS_FROM_STORE_TO_MASTER_KEY,
+          PRODUCTS_FROM_MASTER_TO_STORE_KEY,
+          productSelectionId,
+          masterProductSelectionId
+        );
+
+        if (mergedResults.length > 0) {
+          return {
+            ...result,
+            total:
+              result.total + (mergedResults.length - result.results.length),
+            results: mergedResults,
+          };
+        }
+
+        return result;
+      } catch (error) {
+        logger.error('Error in fetchUserStoreProducts:', error);
+        throw error;
+      }
     }, [fetchStoreProducts, productSelectionId]);
 
   const fetchMasterStoreProducts =
@@ -650,12 +727,40 @@ const useStoreProducts = ({
           results: [],
         };
       }
-      return fetchStoreProducts(masterProductSelectionId, productSelectionId);
+
+      try {
+        const result = await fetchStoreProducts(
+          masterProductSelectionId,
+          productSelectionId
+        );
+
+        const mergedResults = mergeCacheWithResults(
+          result.results,
+          PRODUCTS_FROM_MASTER_TO_STORE_KEY,
+          PRODUCTS_FROM_STORE_TO_MASTER_KEY,
+          masterProductSelectionId,
+          productSelectionId
+        );
+
+        if (mergedResults.length > 0) {
+          return {
+            ...result,
+            total:
+              result.total + (mergedResults.length - result.results.length),
+            results: mergedResults,
+          };
+        }
+
+        return result;
+      } catch (error) {
+        logger.error('Error in fetchMasterStoreProducts:', error);
+        throw error;
+      }
     }, [fetchStoreProducts, masterProductSelectionId, productSelectionId]);
 
   const searchStoreProducts = useCallback(
     async (searchText: string): Promise<ProductSearchResult> => {
-      if (!productSelectionId) {
+      if (!productSelectionId || !masterProductSelectionId) {
         console.warn('Product selection ID is required');
         return {
           total: 0,
@@ -664,7 +769,33 @@ const useStoreProducts = ({
           results: [],
         };
       }
-      return searchProductsFunc(productSelectionId, searchText);
+
+      try {
+        const result = await searchProductsFunc(productSelectionId, searchText);
+
+        // Merge with cached products from master-to-store
+        const mergedResults = mergeCacheWithResults(
+          result.results,
+          PRODUCTS_FROM_STORE_TO_MASTER_KEY,
+          PRODUCTS_FROM_MASTER_TO_STORE_KEY,
+          productSelectionId,
+          masterProductSelectionId
+        );
+
+        if (mergedResults.length > 0) {
+          return {
+            ...result,
+            total:
+              result.total + (mergedResults.length - result.results.length),
+            results: mergedResults,
+          };
+        }
+
+        return result;
+      } catch (error) {
+        logger.error('Error in searchStoreProducts:', error);
+        throw error;
+      }
     },
     [searchProductsFunc, productSelectionId]
   );
@@ -680,7 +811,36 @@ const useStoreProducts = ({
           results: [],
         };
       }
-      return searchProductsFunc(masterProductSelectionId, searchText);
+
+      try {
+        const result = await searchProductsFunc(
+          masterProductSelectionId,
+          searchText
+        );
+
+        // Merge with cached products from store-to-master
+        const mergedResults = mergeCacheWithResults(
+          result.results,
+          PRODUCTS_FROM_MASTER_TO_STORE_KEY,
+          PRODUCTS_FROM_STORE_TO_MASTER_KEY,
+          masterProductSelectionId,
+          productSelectionId
+        );
+
+        if (mergedResults.length > 0) {
+          return {
+            ...result,
+            total:
+              result.total + (mergedResults.length - result.results.length),
+            results: mergedResults,
+          };
+        }
+
+        return result;
+      } catch (error) {
+        logger.error('Error in searchMasterProducts:', error);
+        throw error;
+      }
     },
     [searchProductsFunc, masterProductSelectionId, productSelectionId]
   );

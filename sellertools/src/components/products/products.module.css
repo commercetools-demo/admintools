@@ -248,4 +248,10 @@
   padding-top: 8px;
 }
 
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Add any additional styles below */ 
