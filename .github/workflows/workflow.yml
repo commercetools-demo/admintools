@@ -66,7 +66,6 @@ jobs:
             "--configuration" "cms.GCP_BUCKET_NAME=${{ vars.CMS_GCP_BUCKET_NAME }}"
             "--configuration" "cms.GCP_PROJECT_ID=${{ vars.CMS_GCP_PROJECT_ID }}"
             "--configuration" "cms.GCP_CLIENT_EMAIL=${{ vars.CMS_GCP_CLIENT_EMAIL }}"
-            "--configuration" "cms.GCP_PRIVATE_KEY=\"${{ secrets.CMS_GCP_PRIVATE_KEY }}\""
             "--configuration" "chat.AI_PROVIDER=${{ vars.CHAT_AI_PROVIDER }}"
             "--configuration" "chat.AI_MODEL=${{ vars.CHAT_AI_MODEL }}"
             "--configuration" "CTP_CLIENT_SECRET=${{ secrets.CTP_CLIENT_SECRET }}"
