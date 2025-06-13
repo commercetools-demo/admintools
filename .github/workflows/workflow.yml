@@ -73,6 +73,7 @@ jobs:
             "--configuration" "CTP_PROJECT_KEY=${{ vars.CTP_PROJECT_KEY }}"
             "--configuration" "CTP_CLIENT_ID=${{ vars.CTP_CLIENT_ID }}"
             "--configuration" "CTP_SCOPE=${{ vars.CTP_SCOPE }}"
+            "--configuration" "CTP_REGION=${{ vars.CTP_REGION }}"
             "--configuration" "JWT_SECRET=${{ secrets.JWT_SECRET }}"
             "--configuration" "CTP_AUTH_URL=${{ vars.CTP_AUTH_URL }}"
             "--configuration" "CTP_API_URL=${{ vars.CTP_API_URL }}"
