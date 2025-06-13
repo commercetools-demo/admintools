@@ -84,8 +84,8 @@ deployAs:
           required: false
       securedConfiguration:
         - key: GCP_PRIVATE_KEY
-            description: GCP Private Key (only used if STORAGE_TYPE is gcp)
-            required: false
+          description: GCP Private Key (only used if STORAGE_TYPE is gcp)
+          required: false
 inheritAs:
   configuration:
     standardConfiguration:
@@ -96,7 +96,6 @@ inheritAs:
         description: commercetools Composable Commerce region
         required: true
         default: "gcp-us"
-        default: "https://auth.us-central1.gcp.commercetools.com"
       - key: CTP_API_URL
         description: commercetools Composable Commerce API URL
         required: true
