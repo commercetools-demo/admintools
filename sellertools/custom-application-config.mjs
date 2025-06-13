@@ -49,8 +49,7 @@ const config = {
       'manage_cart_discounts',
       'manage_business_units',
       'manage_associate_roles',
-      'manage_key_value_documents',
-      'manage_product_selections',
+      'manage_key_value_documents'
     ],
   },
   headers: {

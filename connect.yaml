@@ -77,10 +77,6 @@ inheritAs:
       - key: CTP_AUTH_URL
         description: commercetools Composable Commerce auth URL
         required: true
-      - key: CTP_REGION
-        description: commercetools Composable Commerce region
-        required: true
-        default: "gcp-us"
       - key: CTP_API_URL
         description: commercetools Composable Commerce API URL
         required: true
