@@ -2,6 +2,11 @@
 import { entryPointUriPathToPermissionKeys } from '@commercetools-frontend/application-shell/ssr';
 
 export const entryPointUriPath = 'sellertools';
+
+export const groupNames = {
+  admin: 'admin',
+  dashboard: 'dashboard',
+};
 export const permissionGroups = ['admin', 'dashboard'];
 
 export const PERMISSIONS = entryPointUriPathToPermissionKeys(
