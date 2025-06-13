@@ -6,7 +6,7 @@ import {
   type TRenderAppOptions,
   type TRenderAppWithReduxOptions,
 } from '@commercetools-frontend/application-shell/test-utils';
-import ApplicationRoutes from '../routes';
+import ApplicationRoutes from '../routes/routes';
 import { entryPointUriPath } from '../constants';
 
 const mergeWithDefaultOptions = (
