@@ -33,11 +33,7 @@ interface ProductFormData {
   imageLabel: string;
 }
 
-const ProductForm: React.FC<ProductFormProps> = ({
-  channelKey,
-  onBack,
-  onSubmit,
-}) => {
+const ProductForm: React.FC<ProductFormProps> = ({ channelKey, onSubmit }) => {
   const intl = useIntl();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -174,11 +170,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
         imageLabel: 'Product Image',
       });
       setPriceInputValue('0.00');
-
-      // Go back to the product list after a delay
-      setTimeout(() => {
-        onBack();
-      }, 2000);
     } catch (err) {
       console.error('Error creating product:', err);
       setError(
@@ -192,18 +183,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
   return (
     <div className={styles.container}>
       <Spacings.Stack scale="l">
-        <Spacings.Inline alignItems="center">
-          <SecondaryButton
-            label={intl.formatMessage(messages.backButton)}
-            onClick={onBack}
-            iconLeft={<BackIcon />}
-          />
-        </Spacings.Inline>
-
-        <Text.Headline as="h2">
-          {intl.formatMessage(messages.createProduct)}
-        </Text.Headline>
-
         {successMessage && (
           <ContentNotification type="success">
             <Text.Body>{successMessage}</Text.Body>
@@ -351,12 +330,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </Card>
 
         <Spacings.Inline justifyContent="flex-end">
-          <SecondaryButton
-            label={intl.formatMessage(messages.cancel)}
-            onClick={onBack}
-            isDisabled={isSubmitting}
-          />
-
           <PrimaryButton
             label={intl.formatMessage(messages.createProductButton)}
             onClick={handleSubmit}

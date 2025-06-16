@@ -17,6 +17,7 @@ import { useProductWrapper } from './store-products-wrapper';
 import { ProductData } from '../../hooks/use-store-products/types';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import CheckboxInput from '@commercetools-uikit/checkbox-input';
+import AddNewProductButton from '../product/new-product-button';
 
 interface ProductsProps {
   onBack: () => void;
@@ -68,7 +69,6 @@ export const CheckboxCell = ({
 
 const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
   const { storeKey } = useAuthContext();
-  const [view, setView] = useState<'list' | 'form'>('list');
 
   // Refs for tracking the most recent search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -94,61 +94,42 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
   return (
     <div className={styles.container}>
       <Spacings.Stack scale="l">
-        {view === 'form' ? (
-          <ProductForm
-            channelKey={storeKey!}
-            onBack={() => setView('list')}
-            onSubmit={async (productData) => {
-              const success = await createProduct(productData);
-              if (success) {
-                // Refresh product lists after creating a new product
-                fetchUserStoreProducts();
-                setView('list');
-              }
-            }}
-          />
-        ) : (
-          <>
-            <div className={styles.header}>
-              <div>
-                <Text.Headline as="h1">
-                  {intl.formatMessage(messages.title)}
-                </Text.Headline>
-                <Text.Subheadline as="h4">
-                  Store:{' '}
-                  <span className={styles.storeKeyHighlight}>{storeKey}</span>
-                </Text.Subheadline>
-                <div className={styles.actionButtonContainer}>
-                  <PrimaryButton
-                    label={intl.formatMessage(messages.addProduct)}
-                    onClick={() => setView('form')}
-                    iconLeft={<PlusBoldIcon />}
-                    size="small"
-                  />
-                </div>
+        <>
+          <div className={styles.header}>
+            <div>
+              <Text.Headline as="h1">
+                {intl.formatMessage(messages.title)}
+              </Text.Headline>
+              <Text.Subheadline as="h4">
+                Store:{' '}
+                <span className={styles.storeKeyHighlight}>{storeKey}</span>
+              </Text.Subheadline>
+              <div className={styles.actionButtonContainer}>
+                <AddNewProductButton />
               </div>
-              <Spacings.Inline scale="s">
-                <SecondaryButton
-                  iconLeft={<RefreshIcon />}
-                  label={intl.formatMessage(messages.refreshButton)}
-                  onClick={() => {
-                    fetchUserStoreProducts();
-                  }}
-                />
-                <PrimaryButton
-                  label={intl.formatMessage(messages.backButton)}
-                  onClick={onBack}
-                />
-              </Spacings.Inline>
             </div>
 
-            {/* Side-by-side tables layout */}
-            <Spacings.Inline alignItems="stretch" scale="m">
-              <MasterProductTable />
-              <StoreProductTable />
+            <Spacings.Inline scale="s">
+              <SecondaryButton
+                iconLeft={<RefreshIcon />}
+                label={intl.formatMessage(messages.refreshButton)}
+                onClick={() => {
+                  fetchUserStoreProducts();
+                }}
+              />
+              <PrimaryButton
+                label={intl.formatMessage(messages.backButton)}
+                onClick={onBack}
+              />
             </Spacings.Inline>
-          </>
-        )}
+          </div>
+
+          {/* Side-by-side tables layout */}
+          <Spacings.Inline alignItems="stretch" scale="m">
+            <MasterProductTable />
+            <StoreProductTable />
+          </Spacings.Inline>
+        </>
       </Spacings.Stack>
     </div>
   );
