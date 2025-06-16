@@ -83,11 +83,6 @@ jobs:
             ARGS+=("--configuration" "chat.OPENAI_API_KEY=${{ secrets.CHAT_OPENAI_API_KEY }}")
           fi
           
-          echo "Executing commercetools command:"
-          printf '%s ' "${ARGS[@]}"
-          echo
-          echo "---"
-          
           "${ARGS[@]}"
             
       - name: Output deployment information
