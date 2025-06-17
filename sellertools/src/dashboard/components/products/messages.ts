@@ -151,6 +151,10 @@ export default defineMessages({
     id: 'Products.createProductButton',
     defaultMessage: 'Create Product',
   },
+  updateProductButton: {
+    id: 'Products.updateProductButton',
+    defaultMessage: 'Update Product',
+  },
   productCreateSuccess: {
     id: 'Products.productCreateSuccess',
     defaultMessage: 'Product created successfully!',

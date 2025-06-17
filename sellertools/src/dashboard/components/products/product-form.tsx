@@ -53,7 +53,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
   isEdit,
 }) => {
   const intl = useIntl();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { dataLocale = 'en-US' } = useApplicationContext();
@@ -64,14 +63,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
     { label: string; value: string }[]
   >([]);
 
-  // // Handle form input changes
-  // const handleInputChange = (field: keyof ProductFormData, value: any) => {
-  //   setFormData({
-  //     ...formData,
-  //     [field]: value,
-  //   });
-  // };
-
   const fetchProductTypes = async () => {
     const productTypes = await getProductTypes();
     return productTypes.map((productType) => ({
@@ -79,18 +70,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
       value: productType.id,
     }));
   };
-
-  // const handlePriceChange = (value: string) => {
-  //   setFormData({
-  //     ...formData,
-  //     price: {
-  //       ...formData.price,
-  //       amount: value,
-  //     },
-  //   });
-  // };
-
-  // };
 
   // Form validation
   const isFormValid = (values: ProductFormData) => {
@@ -119,7 +98,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   // Handle form submission
   const handleSubmit = async (values: ProductFormData) => {
-    setIsSubmitting(true);
     setError(null);
     setSuccessMessage(null);
 
@@ -178,14 +156,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
       // Show success message
       setSuccessMessage(intl.formatMessage(messages.productCreateSuccess));
-
     } catch (err) {
       console.error('Error creating product:', err);
       setError(
         err instanceof Error ? err.message : 'Unknown error creating product'
       );
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -212,183 +187,195 @@ const ProductForm: React.FC<ProductFormProps> = ({
       enableReinitialize
       validate={isFormValid}
     >
-    {({
-         values,
-         errors,
-         touched,
-         handleChange,
-         setFieldValue,
-         handleBlur,
-         handleSubmit,
-         isSubmitting,
-         /* and other goodies */
-       }) => (<form className={styles.container}>
-      <Spacings.Stack scale="l">
-        {successMessage && (
-          <ContentNotification type="success">
-            <Text.Body>{successMessage}</Text.Body>
-          </ContentNotification>
-        )}
+      {({
+        values,
+        errors,
+        touched,
+        handleChange,
+        setFieldValue,
+        handleBlur,
+        handleSubmit,
+        isSubmitting,
+        /* and other goodies */
+      }) => (
+        <form className={styles.container}>
+          <Spacings.Stack scale="l">
+            {successMessage && (
+              <ContentNotification type="success">
+                <Text.Body>{successMessage}</Text.Body>
+              </ContentNotification>
+            )}
 
-        {error && (
-          <ContentNotification type="error">
-            <Text.Body>{error}</Text.Body>
-          </ContentNotification>
-        )}
+            {error && (
+              <ContentNotification type="error">
+                <Text.Body>{error}</Text.Body>
+              </ContentNotification>
+            )}
 
-        <Card>
-          <Spacings.Stack scale="m">
-            <div className={styles.sectionTitle}>
-              <Text.Subheadline as="h4">
-                {intl.formatMessage(messages.productBasicInfo)}
-              </Text.Subheadline>
-            </div>
-
-            <Spacings.Stack scale="s">
-              <AsyncSelectField
-                title={intl.formatMessage(messages.productType)}
-                name="productType"
-                value={getProductTypeValue(values)}
-                onChange={(event) =>
-                  setFieldValue('productType', {
-                    id: (event.target.value as { value: string }).value,
-                    typeId: 'product-type',
-                  }, true)
-                }
-                isReadOnly={!isCreate}
-                isRequired
-                defaultOptions={productTypes}
-                loadOptions={fetchProductTypes}
-              />
-            </Spacings.Stack>
-          </Spacings.Stack>
-        </Card>
-
-        <Card>
-          <Spacings.Stack scale="m">
-            <div className={styles.sectionTitle}>
-              <Text.Subheadline as="h4">
-                {intl.formatMessage(messages.productBasicInfo)}
-              </Text.Subheadline>
-            </div>
-
-            <Spacings.Stack scale="s">
-              <TextField
-                title={intl.formatMessage(messages.productName)}
-                name="name"
-                value={values.name}
-                onChange={handleChange}
-                isRequired
-                horizontalConstraint="scale"
-              />
-
-              <TextField
-                title={intl.formatMessage(messages.productDescription)}
-                name="description"
-                value={values.description}
-                onChange={handleChange}
-                horizontalConstraint="scale"
-              />
-            </Spacings.Stack>
-          </Spacings.Stack>
-        </Card>
-
-        <Card>
-          <Spacings.Stack scale="m">
-            <div className={styles.sectionTitle}>
-              <Text.Subheadline as="h4">
-                {intl.formatMessage(messages.masterVariant)}
-              </Text.Subheadline>
-            </div>
-
-            <Spacings.Stack scale="s">
-              <TextField
-                title={intl.formatMessage(messages.variantSku)}
-                name="sku"
-                value={values.sku}
-                onChange={handleChange}
-                isRequired
-                horizontalConstraint="scale"
-              />
-
-              <Spacings.Stack scale="xs">
-                <Text.Subheadline as="h4">
-                  {intl.formatMessage(messages.price)}
-                </Text.Subheadline>
-                <MoneyInput
-                  name="price"
-                  value={values.price}
-                  onChange={handleChange}
-                />
-                <Text.Detail tone="secondary">
-                  {intl.formatMessage(messages.priceHint)}
-                </Text.Detail>
-              </Spacings.Stack>
-            </Spacings.Stack>
-          </Spacings.Stack>
-        </Card>
-
-        <Card>
-          <Spacings.Stack scale="m">
-            <div className={styles.sectionTitle}>
-              <Text.Subheadline as="h4">
-                {intl.formatMessage(messages.productImage)}
-              </Text.Subheadline>
-            </div>
-
-            <Spacings.Stack scale="s">
-              <TextField
-                title={intl.formatMessage(messages.imageUrl)}
-                name="imageUrl"
-                value={values.imageUrl}
-                onChange={handleChange}
-                horizontalConstraint="scale"
-              />
-
-              <TextField
-                title={intl.formatMessage(messages.imageLabel)}
-                name="imageLabel"
-                value={values.imageLabel}
-                onChange={handleChange}
-                horizontalConstraint="scale"
-              />
-
-              {values.imageUrl && (
-                <div className={styles.imagePreviewContainer}>
-                  <Text.Detail tone="secondary">
-                    {intl.formatMessage(messages.imagePreview)}
-                  </Text.Detail>
-                  <div className={styles.imagePreview}>
-                    <img
-                      src={values.imageUrl}
-                      alt={values.imageLabel}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src =
-                          'https://via.placeholder.com/150?text=Invalid+Image+URL';
-                      }}
-                    />
-                  </div>
+            <Card>
+              <Spacings.Stack scale="m">
+                <div className={styles.sectionTitle}>
+                  <Text.Subheadline as="h4">
+                    {intl.formatMessage(messages.productBasicInfo)}
+                  </Text.Subheadline>
                 </div>
-              )}
-            </Spacings.Stack>
+
+                <Spacings.Stack scale="s">
+                  <AsyncSelectField
+                    title={intl.formatMessage(messages.productType)}
+                    name="productType"
+                    value={getProductTypeValue(values)}
+                    onChange={(event) =>
+                      setFieldValue(
+                        'productType',
+                        {
+                          id: (event.target.value as { value: string }).value,
+                          typeId: 'product-type',
+                        },
+                        true
+                      )
+                    }
+                    isReadOnly={!isCreate}
+                    isRequired
+                    defaultOptions={productTypes}
+                    loadOptions={fetchProductTypes}
+                  />
+                </Spacings.Stack>
+              </Spacings.Stack>
+            </Card>
+
+            <Card>
+              <Spacings.Stack scale="m">
+                <div className={styles.sectionTitle}>
+                  <Text.Subheadline as="h4">
+                    {intl.formatMessage(messages.productBasicInfo)}
+                  </Text.Subheadline>
+                </div>
+
+                <Spacings.Stack scale="s">
+                  <TextField
+                    title={intl.formatMessage(messages.productName)}
+                    name="name"
+                    value={values.name}
+                    onChange={handleChange}
+                    isRequired
+                    horizontalConstraint="scale"
+                  />
+
+                  <TextField
+                    title={intl.formatMessage(messages.productDescription)}
+                    name="description"
+                    value={values.description}
+                    onChange={handleChange}
+                    horizontalConstraint="scale"
+                  />
+                </Spacings.Stack>
+              </Spacings.Stack>
+            </Card>
+
+            <Card>
+              <Spacings.Stack scale="m">
+                <div className={styles.sectionTitle}>
+                  <Text.Subheadline as="h4">
+                    {intl.formatMessage(messages.masterVariant)}
+                  </Text.Subheadline>
+                </div>
+
+                <Spacings.Stack scale="s">
+                  <TextField
+                    title={intl.formatMessage(messages.variantSku)}
+                    name="sku"
+                    value={values.sku}
+                    onChange={handleChange}
+                    isRequired
+                    isReadOnly={!isCreate}
+                    horizontalConstraint="scale"
+                  />
+
+                  <Spacings.Stack scale="xs">
+                    <Text.Subheadline as="h4">
+                      {intl.formatMessage(messages.price)}
+                    </Text.Subheadline>
+                    <MoneyInput
+                      name="price"
+                      isReadOnly={!isCreate}
+                      value={values.price}
+                      onChange={handleChange}
+                    />
+                    <Text.Detail tone="secondary">
+                      {intl.formatMessage(messages.priceHint)}
+                    </Text.Detail>
+                  </Spacings.Stack>
+                </Spacings.Stack>
+              </Spacings.Stack>
+            </Card>
+
+            <Card>
+              <Spacings.Stack scale="m">
+                <div className={styles.sectionTitle}>
+                  <Text.Subheadline as="h4">
+                    {intl.formatMessage(messages.productImage)}
+                  </Text.Subheadline>
+                </div>
+
+                <Spacings.Stack scale="s">
+                  <TextField
+                    title={intl.formatMessage(messages.imageUrl)}
+                    name="imageUrl"
+                    value={values.imageUrl}
+                    onChange={handleChange}
+                    horizontalConstraint="scale"
+                  />
+
+                  <TextField
+                    title={intl.formatMessage(messages.imageLabel)}
+                    name="imageLabel"
+                    value={values.imageLabel}
+                    onChange={handleChange}
+                    horizontalConstraint="scale"
+                  />
+
+                  {values.imageUrl && (
+                    <div className={styles.imagePreviewContainer}>
+                      <Text.Detail tone="secondary">
+                        {intl.formatMessage(messages.imagePreview)}
+                      </Text.Detail>
+                      <div className={styles.imagePreview}>
+                        <img
+                          src={values.imageUrl}
+                          alt={values.imageLabel}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src =
+                              'https://via.placeholder.com/150?text=Invalid+Image+URL';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </Spacings.Stack>
+              </Spacings.Stack>
+            </Card>
+
+            <Spacings.Inline justifyContent="flex-end">
+              <PrimaryButton
+                label={intl.formatMessage(
+                  isCreate
+                    ? messages.createProductButton
+                    : messages.updateProductButton
+                )}
+                onClick={() => handleSubmit()}
+              />
+            </Spacings.Inline>
+
+            {isSubmitting && (
+              <div className={styles.loadingOverlay}>
+                <LoadingSpinner scale="l" />
+              </div>
+            )}
           </Spacings.Stack>
-        </Card>
-
-        <Spacings.Inline justifyContent="flex-end">
-          <PrimaryButton
-            label={intl.formatMessage(messages.createProductButton)}
-            onClick={() => handleSubmit()}
-          />
-        </Spacings.Inline>
-
-        {isSubmitting && (
-          <div className={styles.loadingOverlay}>
-            <LoadingSpinner scale="l" />
-          </div>
-        )}
-        </Spacings.Stack>
-      </form>)}
+        </form>
+      )}
     </Formik>
   );
 };

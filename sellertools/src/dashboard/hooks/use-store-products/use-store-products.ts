@@ -20,14 +20,15 @@ import {
   ProductProjection,
   ProductProjectionPagedQueryResponse,
   ProductTailoring,
+  ProductTailoringInStoreDraft,
+  ProductTailoringUpdateAction,
 } from '@commercetools/platform-sdk';
 import gql from 'graphql-tag';
 import { useCallback, useState } from 'react';
-import { useAuthContext } from '../../contexts/auth-context';
 import logger from '../../../utils/logger';
+import { useAuthContext } from '../../contexts/auth-context';
 import {
   addProductsToCache,
-  getProductsFromCache,
   mergeCacheWithResults,
   PRODUCTS_FROM_MASTER_TO_STORE_KEY,
   PRODUCTS_FROM_STORE_TO_MASTER_KEY,
@@ -38,7 +39,6 @@ import {
   mapProdutProjectionResponse,
 } from './mapper';
 import {
-  CreateProductResponse,
   ProductSearchResult,
   ProductSelectionResponse,
   UseStoreProductsResult,
@@ -62,16 +62,6 @@ const UPDATE_PRODUCT_SELECTION_MUTATION = gql`
 const GET_PRODUCT_SELECTION_BY_ID = gql`
   query GetProductSelectionById($id: String!) {
     productSelection(id: $id) {
-      id
-      version
-    }
-  }
-`;
-
-// GraphQL mutation to create a product
-const CREATE_PRODUCT_MUTATION = gql`
-  mutation CreateProduct($draft: ProductDraft!) {
-    createProduct(draft: $draft) {
       id
       version
     }
@@ -151,6 +141,18 @@ const useStoreProducts = ({
   >();
   const dispatchProduct = useAsyncDispatch<TSdkAction, ProductProjection>();
   const dispatchProductCreate = useAsyncDispatch<TSdkAction, Product>();
+  const dispatchProductTailoring = useAsyncDispatch<
+    TSdkAction,
+    ProductTailoring
+  >();
+  const dispatchProductTailoringUpdate = useAsyncDispatch<
+    TSdkAction,
+    ProductTailoring
+  >();
+  const dispatchProductTailoringCreate = useAsyncDispatch<
+    TSdkAction,
+    ProductTailoring
+  >();
 
   const { masterProductSelectionId, productSelectionId, storeKey } =
     useAuthContext();
@@ -166,6 +168,66 @@ const useStoreProducts = ({
       return result;
     },
     [project?.key, dispatchProduct, storeKey]
+  );
+
+  const getProductTailoringInStore = useCallback(
+    async (productId: string) => {
+      try {
+        const result = await dispatchProductTailoring(
+          actions.get({
+            mcApiProxyTarget: MC_API_PROXY_TARGETS.COMMERCETOOLS_PLATFORM,
+            uri: `/${project?.key}/in-store/key=${storeKey}/products/${productId}/product-tailoring`,
+          })
+        );
+        return result;
+      } catch (error) {
+        return null;
+      }
+    },
+    [project?.key, dispatchProduct, storeKey]
+  );
+
+  const createProductTailoring = useCallback(
+    async (product: ProductTailoringInStoreDraft) => {
+      const result = await dispatchProductTailoringCreate(
+        actions.post({
+          mcApiProxyTarget: MC_API_PROXY_TARGETS.COMMERCETOOLS_PLATFORM,
+          uri: `/${project?.key}/in-store/key=${storeKey}/product-tailoring`,
+          payload: product,
+        })
+      );
+      return result;
+    },
+    [project?.key, dispatchProductTailoringCreate, storeKey]
+  );
+
+  const updateProductTailoring = useCallback(
+    async (
+      productId: string,
+      updateActions: ProductTailoringUpdateAction[]
+    ) => {
+      if (!updateActions.length) {
+        return null;
+      }
+
+      const productTailoring = await getProductTailoringInStore(productId);
+      if (!productTailoring) {
+        return null;
+      }
+
+      const result = await dispatchProductTailoringUpdate(
+        actions.post({
+          mcApiProxyTarget: MC_API_PROXY_TARGETS.COMMERCETOOLS_PLATFORM,
+          uri: `/${project?.key}/in-store/key=${storeKey}/products/${productId}/product-tailoring`,
+          payload: {
+            version: productTailoring.version,
+            actions: updateActions,
+          },
+        })
+      );
+      return result;
+    },
+    [project?.key, dispatchProductTailoringUpdate, storeKey]
   );
 
   const getProductProjectionFromIDs = useCallback(
@@ -854,6 +916,9 @@ const useStoreProducts = ({
     searchStoreProducts,
     searchMasterProducts,
     getProductById,
+    getProductTailoringInStore,
+    createProductTailoring,
+    updateProductTailoring,
     loading,
     error,
   };
