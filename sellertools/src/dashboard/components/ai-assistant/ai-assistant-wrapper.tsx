@@ -46,6 +46,7 @@ const AIAssistantWrapper = () => {
     <AiAssistant
       deployedUrl={`${deployedUrl}?storeKey=${storeKey}`}
       token={token}
+      minimized
     />
   );
 };
