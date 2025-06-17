@@ -544,7 +544,6 @@ const useStoreProducts = ({
     setError(null);
 
     try {
-
       logger.info(
         'Creating product with data:',
         JSON.stringify(productDraft, null, 2)
@@ -555,7 +554,7 @@ const useStoreProducts = ({
         actions.post({
           mcApiProxyTarget: MC_API_PROXY_TARGETS.COMMERCETOOLS_PLATFORM,
           uri: `/${project?.key}/products`,
-          payload: productDraft
+          payload: productDraft,
         })
       ).catch((error) => {
         // Extract GraphQL specific error details

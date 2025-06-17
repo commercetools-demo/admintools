@@ -184,4 +184,8 @@ export default defineMessages({
     id: 'Products.tryDifferentSearch',
     defaultMessage: 'Try a different search term or browse the master catalog.',
   },
+  productType: {
+    id: 'Products.productType',
+    defaultMessage: 'Product Type',
+  },
 });

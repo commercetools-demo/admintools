@@ -82,9 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [distributionChannelId, setDistributionChannelId] = useState<
     string | null
   >(null);
-  const [supplyChannelId, setSupplyChannelId] = useState<
-    string | null
-  >(null);
+  const [supplyChannelId, setSupplyChannelId] = useState<string | null>(null);
   const [productSelectionId, setProductSelectionId] = useState<
     string | undefined
   >(undefined);

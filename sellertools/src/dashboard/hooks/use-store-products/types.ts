@@ -1,4 +1,9 @@
-import { ProductDraft, ProductPagedSearchResponse, ProductProjection, ProductTailoring } from '@commercetools/platform-sdk';
+import {
+  ProductDraft,
+  ProductPagedSearchResponse,
+  ProductProjection,
+  ProductTailoring,
+} from '@commercetools/platform-sdk';
 
 export interface ProductSelectionResponse {
   productSelection?: {

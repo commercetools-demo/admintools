@@ -105,9 +105,11 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
                 <span className={styles.storeKeyHighlight}>{storeKey}</span>
               </Text.Subheadline>
               <div className={styles.actionButtonContainer}>
-                <AddNewProductButton onSubmit={() => {
-                  fetchUserStoreProducts();
-                }} />
+                <AddNewProductButton
+                  onSubmit={() => {
+                    fetchUserStoreProducts();
+                  }}
+                />
               </div>
             </div>
 

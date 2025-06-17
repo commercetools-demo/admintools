@@ -1,3 +1,5 @@
+import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
+import AsyncSelectField from '@commercetools-uikit/async-select-field';
 import Card from '@commercetools-uikit/card';
 import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import MoneyInput from '@commercetools-uikit/money-input';
@@ -6,15 +8,15 @@ import PrimaryButton from '@commercetools-uikit/primary-button';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import TextField from '@commercetools-uikit/text-field';
-import React, { useState } from 'react';
+import { ProductDraft } from '@commercetools/platform-sdk';
+import React, { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuthContext } from '../../contexts/auth-context';
+import { useProductTypeConnector } from '../../hooks/use-product-type-connector';
 import { ProductFormData } from '../product/details';
 import messages from './messages';
 import styles from './products.module.css';
-import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
-import { ProductDraft } from '@commercetools/platform-sdk';
-import { useAuthContext } from '../../contexts/auth-context';
 
 interface ProductFormProps {
   initialData?: ProductFormData;
@@ -23,7 +25,6 @@ interface ProductFormProps {
 }
 
 // Product type definition (from provided JSON)
-const PRODUCT_TYPE_ID = '9a68fe2c-d9b7-4fae-8819-85a31f797a7b';
 
 // Product data structure
 const defaultFormData: ProductFormData = {
@@ -36,6 +37,10 @@ const defaultFormData: ProductFormData = {
   },
   imageUrl: '',
   imageLabel: 'Product Image',
+  productType: {
+    id: '',
+    typeId: 'product-type',
+  },
 };
 
 const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
@@ -45,16 +50,28 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
   const [error, setError] = useState<string | null>(null);
   const { dataLocale } = useApplicationContext();
   const { distributionChannelId } = useAuthContext();
+  const { getProductTypes } = useProductTypeConnector();
   const [formData, setFormData] = useState<ProductFormData>(
     initialData || defaultFormData
   );
+  const [productTypes, setProductTypes] = useState<
+    { label: string; value: string }[]
+  >([]);
 
   // Handle form input changes
-  const handleInputChange = (field: keyof ProductFormData, value: string) => {
+  const handleInputChange = (field: keyof ProductFormData, value: any) => {
     setFormData({
       ...formData,
       [field]: value,
     });
+  };
+
+  const fetchProductTypes = async () => {
+    const productTypes = await getProductTypes();
+    return productTypes.map((productType) => ({
+      label: productType.name,
+      value: productType.id,
+    }));
   };
 
   const handlePriceChange = (value: string) => {
@@ -98,10 +115,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
 
       // Construct the product draft
       const productDraft: ProductDraft = {
-        productType: {
-          id: PRODUCT_TYPE_ID,
-          typeId: 'product-type',
-        },
+        productType: formData.productType,
         name: {
           [dataLocale || 'en-US']: formData.name,
         },
@@ -156,6 +170,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
         },
         imageUrl: '',
         imageLabel: 'Product Image',
+        productType: {
+          id: '',
+          typeId: 'product-type',
+        },
       });
       // setPriceInputValue('0.00');
     } catch (err) {
@@ -167,6 +185,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    fetchProductTypes().then((productTypes) => {
+      setProductTypes(productTypes);
+    });
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -182,6 +206,32 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
             <Text.Body>{error}</Text.Body>
           </ContentNotification>
         )}
+
+        <Card>
+          <Spacings.Stack scale="m">
+            <div className={styles.sectionTitle}>
+              <Text.Subheadline as="h4">
+                {intl.formatMessage(messages.productBasicInfo)}
+              </Text.Subheadline>
+            </div>
+
+            <Spacings.Stack scale="s">
+              <AsyncSelectField
+                title={intl.formatMessage(messages.productType)}
+                value={formData.productType.id}
+                onChange={(event) =>
+                  handleInputChange('productType', {
+                    id: (event.target.value as { value: string }).value,
+                    typeId: 'product-type',
+                  })
+                }
+                isRequired
+                defaultOptions={productTypes}
+                loadOptions={fetchProductTypes}
+              />
+            </Spacings.Stack>
+          </Spacings.Stack>
+        </Card>
 
         <Card>
           <Spacings.Stack scale="m">
