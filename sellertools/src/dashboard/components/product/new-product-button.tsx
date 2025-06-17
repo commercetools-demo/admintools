@@ -5,19 +5,13 @@ import {
 import { PlusBoldIcon } from '@commercetools-uikit/icons';
 import PrimaryButton from '@commercetools-uikit/primary-button';
 import { useIntl } from 'react-intl';
-import { useAuthContext } from '../../contexts/auth-context';
 import useStoreProducts from '../../hooks/use-store-products/use-store-products';
 import messages from '../products/messages';
 import ProductForm from '../products/product-form';
-import { useProductWrapper } from '../products/store-products-wrapper';
 
-interface Props {}
-
-const AddNewProductButton = ({}: Props) => {
+const AddNewProductButton = ({ onSubmit }: { onSubmit: () => void }) => {
   const { isModalOpen, openModal, closeModal } = useModalState();
   const { createProduct } = useStoreProducts({});
-  const { storeKey } = useAuthContext();
-  const { fetchUserStoreProducts } = useProductWrapper();
   const intl = useIntl();
 
   return (
@@ -36,13 +30,11 @@ const AddNewProductButton = ({}: Props) => {
         onClose={closeModal}
       >
         <ProductForm
-          channelKey={storeKey!}
           onBack={() => closeModal()}
           onSubmit={async (productData) => {
             const success = await createProduct(productData);
             if (success) {
-              // Refresh product lists after creating a new product
-              fetchUserStoreProducts();
+              onSubmit();
               closeModal();
             }
           }}

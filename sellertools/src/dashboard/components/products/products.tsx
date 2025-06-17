@@ -105,7 +105,9 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
                 <span className={styles.storeKeyHighlight}>{storeKey}</span>
               </Text.Subheadline>
               <div className={styles.actionButtonContainer}>
-                <AddNewProductButton />
+                <AddNewProductButton onSubmit={() => {
+                  fetchUserStoreProducts();
+                }} />
               </div>
             </div>
 
@@ -127,7 +129,7 @@ const Products: React.FC<ProductsProps> = ({ linkToWelcome, onBack }) => {
           {/* Side-by-side tables layout */}
           <Spacings.Inline alignItems="stretch" scale="m">
             <MasterProductTable />
-            <StoreProductTable />
+            <StoreProductTable linkToWelcome={linkToWelcome} />
           </Spacings.Inline>
         </>
       </Spacings.Stack>

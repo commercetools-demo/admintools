@@ -1,52 +1,53 @@
-import React, { useState } from 'react';
-import { useIntl } from 'react-intl';
+import Card from '@commercetools-uikit/card';
+import LoadingSpinner from '@commercetools-uikit/loading-spinner';
+import MoneyInput from '@commercetools-uikit/money-input';
+import { ContentNotification } from '@commercetools-uikit/notifications';
+import PrimaryButton from '@commercetools-uikit/primary-button';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
-import Card from '@commercetools-uikit/card';
 import TextField from '@commercetools-uikit/text-field';
-import NumberInput from '@commercetools-uikit/number-input';
-import PrimaryButton from '@commercetools-uikit/primary-button';
-import SecondaryButton from '@commercetools-uikit/secondary-button';
-import { BackIcon } from '@commercetools-uikit/icons';
-import LoadingSpinner from '@commercetools-uikit/loading-spinner';
-import { ContentNotification } from '@commercetools-uikit/notifications';
+import React, { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { v4 as uuidv4 } from 'uuid';
+import { ProductFormData } from '../product/details';
 import messages from './messages';
 import styles from './products.module.css';
+import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
+import { ProductDraft } from '@commercetools/platform-sdk';
+import { useAuthContext } from '../../contexts/auth-context';
 
 interface ProductFormProps {
-  channelKey: string;
+  initialData?: ProductFormData;
   onBack: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: ProductDraft) => void;
 }
 
 // Product type definition (from provided JSON)
 const PRODUCT_TYPE_ID = '9a68fe2c-d9b7-4fae-8819-85a31f797a7b';
 
 // Product data structure
-interface ProductFormData {
-  name: string;
-  description: string;
-  sku: string;
-  price: string;
-  imageUrl: string;
-  imageLabel: string;
-}
+const defaultFormData: ProductFormData = {
+  name: '',
+  description: '',
+  sku: '',
+  price: {
+    currencyCode: 'USD',
+    amount: '0',
+  },
+  imageUrl: '',
+  imageLabel: 'Product Image',
+};
 
-const ProductForm: React.FC<ProductFormProps> = ({ channelKey, onSubmit }) => {
+const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
   const intl = useIntl();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState<ProductFormData>({
-    name: '',
-    description: '',
-    sku: '',
-    price: '0.00',
-    imageUrl: '',
-    imageLabel: 'Product Image',
-  });
+  const { dataLocale } = useApplicationContext();
+  const { distributionChannelId } = useAuthContext();
+  const [formData, setFormData] = useState<ProductFormData>(
+    initialData || defaultFormData
+  );
 
   // Handle form input changes
   const handleInputChange = (field: keyof ProductFormData, value: string) => {
@@ -56,42 +57,24 @@ const ProductForm: React.FC<ProductFormProps> = ({ channelKey, onSubmit }) => {
     });
   };
 
-  // Price input handler with formatting
-  const [priceInputValue, setPriceInputValue] = useState<string>('0.00');
-
   const handlePriceChange = (value: string) => {
-    // Update displayed value immediately for user feedback
-    setPriceInputValue(value);
-
-    // Process for actual data - remove non-numeric chars except decimal point
-    const validInput = value.replace(/[^\d.]/g, '');
-
-    // Handle special cases for incomplete inputs
-    if (validInput === '' || validInput === '.') {
-      handleInputChange('price', '0');
-      return;
-    }
-
-    // Ensure only one decimal point
-    const parts = validInput.split('.');
-    let formattedValue = validInput;
-    if (parts.length > 2) {
-      formattedValue = parts[0] + '.' + parts.slice(1).join('');
-    }
-
-    // Parse and update
-    const parsedValue = parseFloat(formattedValue);
-    if (!isNaN(parsedValue)) {
-      handleInputChange('price', parsedValue.toString());
-    }
+    setFormData({
+      ...formData,
+      price: {
+        ...formData.price,
+        amount: value,
+      },
+    });
   };
+
+  // };
 
   // Form validation
   const isFormValid = () => {
     return (
       formData.name.trim() !== '' &&
       formData.sku.trim() !== '' &&
-      parseFloat(formData.price) > 0
+      parseFloat(formData.price.amount) > 0
     );
   };
 
@@ -108,30 +91,34 @@ const ProductForm: React.FC<ProductFormProps> = ({ channelKey, onSubmit }) => {
       const slug = `product_slug_${uuidv4()}`;
 
       // Convert price to cent amount (multiply by 100)
-      const priceValue = Math.round(parseFloat(formData.price) * 100);
+      const priceValue = MoneyInput.convertToMoneyValue(
+        formData.price,
+        dataLocale || 'en-US'
+      );
 
       // Construct the product draft
-      const productDraft = {
+      const productDraft: ProductDraft = {
         productType: {
           id: PRODUCT_TYPE_ID,
           typeId: 'product-type',
         },
-        name: [{ locale: 'en-us', value: formData.name }],
-        description: [{ locale: 'en-us', value: formData.description || ' ' }],
-        slug: [{ locale: 'en-us', value: slug }],
+        name: {
+          [dataLocale || 'en-US']: formData.name,
+        },
+        description: {
+          [dataLocale || 'en-US']: formData.description || ' ',
+        },
+        slug: {
+          [dataLocale || 'en-US']: slug,
+        },
         masterVariant: {
           sku: formData.sku,
           prices: [
             {
-              value: {
-                centPrecision: {
-                  currencyCode: 'USD',
-                  centAmount: priceValue,
-                },
-              },
+              value: priceValue!,
               channel: {
                 typeId: 'channel',
-                key: 'uri-store',
+                id: distributionChannelId!,
               },
             },
           ],
@@ -141,8 +128,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ channelKey, onSubmit }) => {
                   url: formData.imageUrl,
                   label: 'Product Image',
                   dimensions: {
-                    width: 500,
-                    height: 500,
+                    w: 500,
+                    h: 500,
                   },
                 },
               ]
@@ -151,8 +138,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ channelKey, onSubmit }) => {
         variants: [],
         publish: true,
       };
-
-      console.log('Submitting product:', productDraft);
 
       // Call the onSubmit callback
       await onSubmit(productDraft);
@@ -165,11 +150,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ channelKey, onSubmit }) => {
         name: '',
         description: '',
         sku: '',
-        price: '0.00',
+        price: {
+          currencyCode: 'USD',
+          amount: '0',
+        },
         imageUrl: '',
         imageLabel: 'Product Image',
       });
-      setPriceInputValue('0.00');
+      // setPriceInputValue('0.00');
     } catch (err) {
       console.error('Error creating product:', err);
       setError(
@@ -249,29 +237,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ channelKey, onSubmit }) => {
                 <Text.Subheadline as="h4">
                   {intl.formatMessage(messages.price)}
                 </Text.Subheadline>
-                <Spacings.Inline alignItems="center">
-                  <Text.Body>$</Text.Body>
-                  <div className={styles.customMoneyInput}>
-                    <input
-                      type="text"
-                      value={priceInputValue}
-                      onChange={(event) =>
-                        handlePriceChange(event.target.value)
-                      }
-                      onBlur={() => {
-                        // Format on blur
-                        const value = Math.max(
-                          0,
-                          parseFloat(formData.price) || 0
-                        );
-                        setPriceInputValue(value.toFixed(2));
-                        handleInputChange('price', value.toString());
-                      }}
-                      placeholder="0.00"
-                      className={styles.moneyInputField}
-                    />
-                  </div>
-                </Spacings.Inline>
+                <MoneyInput
+                  value={formData.price}
+                  onChange={(value) =>
+                    handlePriceChange(value.target.value as string)
+                  }
+                />
                 <Text.Detail tone="secondary">
                   {intl.formatMessage(messages.priceHint)}
                 </Text.Detail>

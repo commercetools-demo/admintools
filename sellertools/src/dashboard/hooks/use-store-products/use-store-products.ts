@@ -14,8 +14,12 @@ import {
 } from '@commercetools-frontend/sdk';
 import { TState } from '@commercetools-uikit/hooks';
 import {
+  Product,
+  ProductDraft,
   ProductPagedSearchResponse,
+  ProductProjection,
   ProductProjectionPagedQueryResponse,
+  ProductTailoring,
 } from '@commercetools/platform-sdk';
 import gql from 'graphql-tag';
 import { useCallback, useState } from 'react';
@@ -145,8 +149,24 @@ const useStoreProducts = ({
     TSdkAction,
     ProductProjectionPagedQueryResponse
   >();
+  const dispatchProduct = useAsyncDispatch<TSdkAction, ProductProjection>();
+  const dispatchProductCreate = useAsyncDispatch<TSdkAction, Product>();
 
-  const { masterProductSelectionId, productSelectionId } = useAuthContext();
+  const { masterProductSelectionId, productSelectionId, storeKey } =
+    useAuthContext();
+
+  const getProductById = useCallback(
+    async (productId: string) => {
+      const result = await dispatchProduct(
+        actions.get({
+          mcApiProxyTarget: MC_API_PROXY_TARGETS.COMMERCETOOLS_PLATFORM,
+          uri: `/${project?.key}/in-store/key=${storeKey}/product-projections/${productId}`,
+        })
+      );
+      return result;
+    },
+    [project?.key, dispatchProduct, storeKey]
+  );
 
   const getProductProjectionFromIDs = useCallback(
     async (productIds: string[]) => {
@@ -231,12 +251,6 @@ const useStoreProducts = ({
       },
     }
   );
-
-  const [createProductMutation] = useMcMutation(CREATE_PRODUCT_MUTATION, {
-    context: {
-      target: GRAPHQL_TARGETS.COMMERCETOOLS_PLATFORM,
-    },
-  });
 
   const fetchStoreProducts = useCallback(
     async (
@@ -525,28 +539,25 @@ const useStoreProducts = ({
   );
 
   // Function to create a new product
-  const createProduct = async (productDraft: any) => {
+  const createProduct = async (productDraft: ProductDraft) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Add priceMode: Embedded to match the working example
-      const finalProductDraft = {
-        ...productDraft,
-        priceMode: 'Embedded',
-      };
 
       logger.info(
         'Creating product with data:',
-        JSON.stringify(finalProductDraft, null, 2)
+        JSON.stringify(productDraft, null, 2)
       );
 
       // Step 1: Create the product using the GraphQL mutation
-      const result = await createProductMutation({
-        variables: {
-          draft: finalProductDraft,
-        },
-      }).catch((error) => {
+      const result = await dispatchProductCreate(
+        actions.post({
+          mcApiProxyTarget: MC_API_PROXY_TARGETS.COMMERCETOOLS_PLATFORM,
+          uri: `/${project?.key}/products`,
+          payload: productDraft
+        })
+      ).catch((error) => {
         // Extract GraphQL specific error details
         const graphqlErrors = error.graphQLErrors || [];
 
@@ -576,27 +587,16 @@ const useStoreProducts = ({
       });
 
       // Type assertion to handle TypeScript type safety
-      const data = result.data as CreateProductResponse;
+      const data = result as Product;
 
-      if (!data?.createProduct?.id) {
+      if (!data?.id) {
         throw new Error('Failed to create product: No product ID returned');
       }
 
-      const productId = data.createProduct.id;
+      const productId = data.id;
       logger.info('Product created successfully with ID:', productId);
 
-      // Step 2: Add the product to the store's product selection if a channel key is provided
-      if (productDraft.masterVariant.prices?.[0]?.channel?.key) {
-        const storeKey = productDraft.masterVariant.prices[0].channel.key;
-
-        // Add the newly created product to the store's product selection
-        await addProductsToStore([productId]);
-        logger.info(`Product ${productId} added to store ${storeKey}`);
-      } else {
-        logger.warn(
-          'No channel key found in product draft, skipping add to product selection'
-        );
-      }
+      await addProductsToStore([productId]);
 
       return true;
     } catch (err) {
@@ -854,6 +854,7 @@ const useStoreProducts = ({
     createProduct,
     searchStoreProducts,
     searchMasterProducts,
+    getProductById,
     loading,
     error,
   };

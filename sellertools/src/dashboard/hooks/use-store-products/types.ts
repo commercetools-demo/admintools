@@ -1,4 +1,4 @@
-import { ProductPagedSearchResponse } from '@commercetools/platform-sdk';
+import { ProductDraft, ProductPagedSearchResponse, ProductProjection, ProductTailoring } from '@commercetools/platform-sdk';
 
 export interface ProductSelectionResponse {
   productSelection?: {
@@ -55,9 +55,10 @@ export interface UseStoreProductsResult {
   fetchMasterStoreProducts: () => Promise<ProductSearchResult>;
   addProductsToStore: (productIds: string[]) => Promise<boolean>;
   removeProductsFromStore: (productIds: string[]) => Promise<boolean>;
-  createProduct: (productDraft: any) => Promise<boolean>;
+  createProduct: (productDraft: ProductDraft) => Promise<boolean>;
   searchStoreProducts: (searchText: string) => Promise<ProductSearchResult>;
   searchMasterProducts: (searchText: string) => Promise<ProductSearchResult>;
+  getProductById: (productId: string) => Promise<ProductProjection>;
   loading: boolean;
   error: Error | null;
 }

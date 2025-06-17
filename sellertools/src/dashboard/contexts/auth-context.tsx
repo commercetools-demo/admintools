@@ -37,11 +37,13 @@ interface AuthContextType {
   isLoading: boolean;
   storeKey: string | null;
   distributionChannelId: string | null;
+  supplyChannelId: string | null;
   masterDistributionChannelId: string | null;
   masterStoreKey: string | null;
   setMasterStoreKey: (masterStoreKey: string) => void;
   setStoreKey: (storeKey: string) => void;
   setDistributionChannelId: (distributionChannelId: string) => void;
+  setSupplyChannelId: (supplyChannelId: string) => void;
   setMasterDistributionChannelId: (masterDistributionChannelId: string) => void;
   customerDetails: CustomerDetails | null;
   productSelectionId: string | undefined;
@@ -55,11 +57,13 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: false,
   storeKey: null,
   distributionChannelId: null,
+  supplyChannelId: null,
   masterDistributionChannelId: null,
   masterStoreKey: null,
   setMasterStoreKey: () => {},
   setStoreKey: () => {},
   setDistributionChannelId: () => {},
+  setSupplyChannelId: () => {},
   setMasterDistributionChannelId: () => {},
   customerDetails: null,
   productSelectionId: undefined,
@@ -76,6 +80,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [storeKey, setStoreKey] = useState<string | null>(null);
   const [distributionChannelId, setDistributionChannelId] = useState<
+    string | null
+  >(null);
+  const [supplyChannelId, setSupplyChannelId] = useState<
     string | null
   >(null);
   const [productSelectionId, setProductSelectionId] = useState<
@@ -151,12 +158,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       storeKey,
       productSelectionId,
       distributionChannelId,
+      supplyChannelId,
       masterStoreKey,
       masterProductSelectionId,
       masterDistributionChannelId,
       setStoreKey,
       setProductSelectionId,
       setDistributionChannelId,
+      setSupplyChannelId,
       setMasterStoreKey,
       setMasterProductSelectionId,
       setMasterDistributionChannelId,
@@ -170,7 +179,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       masterDistributionChannelId,
       masterProductSelectionId,
       masterStoreKey,
+      supplyChannelId,
       setDistributionChannelId,
+      setSupplyChannelId,
       setMasterDistributionChannelId,
       setStoreKey,
       setProductSelectionId,
