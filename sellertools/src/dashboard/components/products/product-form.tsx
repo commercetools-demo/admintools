@@ -17,6 +17,7 @@ import { useProductTypeConnector } from '../../hooks/use-product-type-connector'
 import { ProductFormData } from '../product/details';
 import messages from './messages';
 import styles from './products.module.css';
+import { Formik, FormikErrors } from 'formik';
 
 interface ProductFormProps {
   initialData?: ProductFormData;
@@ -55,23 +56,21 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { dataLocale } = useApplicationContext();
+  const { dataLocale = 'en-US' } = useApplicationContext();
   const { distributionChannelId } = useAuthContext();
   const { getProductTypes } = useProductTypeConnector();
-  const [formData, setFormData] = useState<ProductFormData>(
-    initialData || defaultFormData
-  );
+
   const [productTypes, setProductTypes] = useState<
     { label: string; value: string }[]
   >([]);
 
-  // Handle form input changes
-  const handleInputChange = (field: keyof ProductFormData, value: any) => {
-    setFormData({
-      ...formData,
-      [field]: value,
-    });
-  };
+  // // Handle form input changes
+  // const handleInputChange = (field: keyof ProductFormData, value: any) => {
+  //   setFormData({
+  //     ...formData,
+  //     [field]: value,
+  //   });
+  // };
 
   const fetchProductTypes = async () => {
     const productTypes = await getProductTypes();
@@ -81,31 +80,45 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }));
   };
 
-  const handlePriceChange = (value: string) => {
-    setFormData({
-      ...formData,
-      price: {
-        ...formData.price,
-        amount: value,
-      },
-    });
-  };
+  // const handlePriceChange = (value: string) => {
+  //   setFormData({
+  //     ...formData,
+  //     price: {
+  //       ...formData.price,
+  //       amount: value,
+  //     },
+  //   });
+  // };
 
   // };
 
   // Form validation
-  const isFormValid = () => {
-    return (
-      formData.name.trim() !== '' &&
-      formData.sku.trim() !== '' &&
-      parseFloat(formData.price.amount) > 0
-    );
+  const isFormValid = (values: ProductFormData) => {
+    const errors: FormikErrors<ProductFormData> = {};
+
+    if (!values.name.trim()) {
+      errors.name = 'Name is required';
+    }
+
+    if (!values.sku.trim()) {
+      errors.sku = 'SKU is required';
+    }
+
+    if (!values.price.amount) {
+      // @ts-ignore
+      errors.price = 'Price is required';
+    }
+
+    if (!values.productType.id) {
+      // @ts-ignore
+      errors.productType = 'Product type is required';
+    }
+
+    return errors;
   };
 
   // Handle form submission
-  const handleSubmit = async () => {
-    if (!isFormValid()) return;
-
+  const handleSubmit = async (values: ProductFormData) => {
     setIsSubmitting(true);
     setError(null);
     setSuccessMessage(null);
@@ -116,24 +129,24 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
       // Convert price to cent amount (multiply by 100)
       const priceValue = MoneyInput.convertToMoneyValue(
-        formData.price,
+        values.price,
         dataLocale || 'en-US'
       );
 
       // Construct the product draft
       const productDraft: ProductDraft = {
-        productType: formData.productType,
+        productType: values.productType,
         name: {
-          [dataLocale || 'en-US']: formData.name,
+          [dataLocale || 'en-US']: values.name,
         },
         description: {
-          [dataLocale || 'en-US']: formData.description || ' ',
+          [dataLocale || 'en-US']: values.description || ' ',
         },
         slug: {
           [dataLocale || 'en-US']: slug,
         },
         masterVariant: {
-          sku: formData.sku,
+          sku: values.sku,
           prices: [
             {
               value: priceValue!,
@@ -143,10 +156,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
               },
             },
           ],
-          images: formData.imageUrl
+          images: values.imageUrl
             ? [
                 {
-                  url: formData.imageUrl,
+                  url: values.imageUrl,
                   label: 'Product Image',
                   dimensions: {
                     w: 500,
@@ -166,23 +179,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
       // Show success message
       setSuccessMessage(intl.formatMessage(messages.productCreateSuccess));
 
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        sku: '',
-        price: {
-          currencyCode: 'USD',
-          amount: '0',
-        },
-        imageUrl: '',
-        imageLabel: 'Product Image',
-        productType: {
-          id: '',
-          typeId: 'product-type',
-        },
-      });
-      // setPriceInputValue('0.00');
     } catch (err) {
       console.error('Error creating product:', err);
       setError(
@@ -193,15 +189,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-  const productTypeValue = useMemo(() => {
+  const getProductTypeValue = (values: ProductFormData) => {
     const productTypeFound = productTypes.find(
-      (productType) => productType.value === formData.productType.id
+      (productType) => productType.value === values.productType.id
     );
     return {
       label: productTypeFound?.label,
       value: productTypeFound?.value,
     };
-  }, [productTypes, formData.productType.id]);
+  };
 
   useEffect(() => {
     fetchProductTypes().then((productTypes) => {
@@ -210,7 +206,23 @@ const ProductForm: React.FC<ProductFormProps> = ({
   }, []);
 
   return (
-    <div className={styles.container}>
+    <Formik<ProductFormData>
+      initialValues={initialData || defaultFormData}
+      onSubmit={handleSubmit}
+      enableReinitialize
+      validate={isFormValid}
+    >
+    {({
+         values,
+         errors,
+         touched,
+         handleChange,
+         setFieldValue,
+         handleBlur,
+         handleSubmit,
+         isSubmitting,
+         /* and other goodies */
+       }) => (<form className={styles.container}>
       <Spacings.Stack scale="l">
         {successMessage && (
           <ContentNotification type="success">
@@ -235,12 +247,13 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <Spacings.Stack scale="s">
               <AsyncSelectField
                 title={intl.formatMessage(messages.productType)}
-                value={productTypeValue}
+                name="productType"
+                value={getProductTypeValue(values)}
                 onChange={(event) =>
-                  handleInputChange('productType', {
+                  setFieldValue('productType', {
                     id: (event.target.value as { value: string }).value,
                     typeId: 'product-type',
-                  })
+                  }, true)
                 }
                 isReadOnly={!isCreate}
                 isRequired
@@ -262,20 +275,18 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <Spacings.Stack scale="s">
               <TextField
                 title={intl.formatMessage(messages.productName)}
-                value={formData.name}
-                onChange={(event) =>
-                  handleInputChange('name', event.target.value)
-                }
+                name="name"
+                value={values.name}
+                onChange={handleChange}
                 isRequired
                 horizontalConstraint="scale"
               />
 
               <TextField
                 title={intl.formatMessage(messages.productDescription)}
-                value={formData.description}
-                onChange={(event) =>
-                  handleInputChange('description', event.target.value)
-                }
+                name="description"
+                value={values.description}
+                onChange={handleChange}
                 horizontalConstraint="scale"
               />
             </Spacings.Stack>
@@ -293,10 +304,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <Spacings.Stack scale="s">
               <TextField
                 title={intl.formatMessage(messages.variantSku)}
-                value={formData.sku}
-                onChange={(event) =>
-                  handleInputChange('sku', event.target.value)
-                }
+                name="sku"
+                value={values.sku}
+                onChange={handleChange}
                 isRequired
                 horizontalConstraint="scale"
               />
@@ -306,10 +316,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   {intl.formatMessage(messages.price)}
                 </Text.Subheadline>
                 <MoneyInput
-                  value={formData.price}
-                  onChange={(value) =>
-                    handlePriceChange(value.target.value as string)
-                  }
+                  name="price"
+                  value={values.price}
+                  onChange={handleChange}
                 />
                 <Text.Detail tone="secondary">
                   {intl.formatMessage(messages.priceHint)}
@@ -330,31 +339,29 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <Spacings.Stack scale="s">
               <TextField
                 title={intl.formatMessage(messages.imageUrl)}
-                value={formData.imageUrl}
-                onChange={(event) =>
-                  handleInputChange('imageUrl', event.target.value)
-                }
+                name="imageUrl"
+                value={values.imageUrl}
+                onChange={handleChange}
                 horizontalConstraint="scale"
               />
 
               <TextField
                 title={intl.formatMessage(messages.imageLabel)}
-                value={formData.imageLabel}
-                onChange={(event) =>
-                  handleInputChange('imageLabel', event.target.value)
-                }
+                name="imageLabel"
+                value={values.imageLabel}
+                onChange={handleChange}
                 horizontalConstraint="scale"
               />
 
-              {formData.imageUrl && (
+              {values.imageUrl && (
                 <div className={styles.imagePreviewContainer}>
                   <Text.Detail tone="secondary">
                     {intl.formatMessage(messages.imagePreview)}
                   </Text.Detail>
                   <div className={styles.imagePreview}>
                     <img
-                      src={formData.imageUrl}
-                      alt={formData.imageLabel}
+                      src={values.imageUrl}
+                      alt={values.imageLabel}
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.src =
@@ -371,8 +378,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         <Spacings.Inline justifyContent="flex-end">
           <PrimaryButton
             label={intl.formatMessage(messages.createProductButton)}
-            onClick={handleSubmit}
-            isDisabled={!isFormValid() || isSubmitting}
+            onClick={() => handleSubmit()}
           />
         </Spacings.Inline>
 
@@ -381,8 +387,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <LoadingSpinner scale="l" />
           </div>
         )}
-      </Spacings.Stack>
-    </div>
+        </Spacings.Stack>
+      </form>)}
+    </Formik>
   );
 };
 
