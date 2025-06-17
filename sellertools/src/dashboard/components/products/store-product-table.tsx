@@ -12,10 +12,11 @@ import { CheckboxCell, ImageCell } from './products';
 import styles from './products.module.css';
 import { useProductWrapper } from './store-products-wrapper';
 import { ProductData } from '../../hooks/use-store-products/types';
+import { useHistory } from 'react-router-dom';
 
-const StoreProductTable = () => {
+const StoreProductTable = ({ linkToWelcome }: { linkToWelcome: string }) => {
   const intl = useIntl();
-
+  const history = useHistory();
   const {
     handleStoreProductSelection,
     handleStoreSearch,
@@ -170,6 +171,9 @@ const StoreProductTable = () => {
               rows={filteredStoreProducts}
               maxHeight="60vh"
               maxWidth="100%"
+              onRowClick={(row) => {
+                history.push(`${linkToWelcome}/products/${row.id}`);
+              }}
               isCondensed
             />
             <Pagination

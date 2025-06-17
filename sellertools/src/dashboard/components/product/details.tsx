@@ -72,6 +72,8 @@ const ProductDetails = ({
       onClose={handleBack}
     >
       <ProductForm
+        isEdit={true}
+        isCreate={false}
         initialData={productData}
         onBack={handleBack}
         onSubmit={async (productData) => {

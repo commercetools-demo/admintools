@@ -30,6 +30,8 @@ const AddNewProductButton = ({ onSubmit }: { onSubmit: () => void }) => {
         onClose={closeModal}
       >
         <ProductForm
+          isCreate={true}
+          isEdit={false}
           onBack={() => closeModal()}
           onSubmit={async (productData) => {
             const success = await createProduct(productData);

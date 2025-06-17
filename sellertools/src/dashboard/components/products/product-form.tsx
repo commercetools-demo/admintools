@@ -9,7 +9,7 @@ import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import TextField from '@commercetools-uikit/text-field';
 import { ProductDraft } from '@commercetools/platform-sdk';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuthContext } from '../../contexts/auth-context';
@@ -22,6 +22,8 @@ interface ProductFormProps {
   initialData?: ProductFormData;
   onBack: () => void;
   onSubmit: (data: ProductDraft) => void;
+  isEdit?: boolean;
+  isCreate?: boolean;
 }
 
 // Product type definition (from provided JSON)
@@ -43,7 +45,12 @@ const defaultFormData: ProductFormData = {
   },
 };
 
-const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
+const ProductForm: React.FC<ProductFormProps> = ({
+  onSubmit,
+  initialData,
+  isCreate,
+  isEdit,
+}) => {
   const intl = useIntl();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -186,6 +193,16 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
     }
   };
 
+  const productTypeValue = useMemo(() => {
+    const productTypeFound = productTypes.find(
+      (productType) => productType.value === formData.productType.id
+    );
+    return {
+      label: productTypeFound?.label,
+      value: productTypeFound?.value,
+    };
+  }, [productTypes, formData.productType.id]);
+
   useEffect(() => {
     fetchProductTypes().then((productTypes) => {
       setProductTypes(productTypes);
@@ -218,13 +235,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, initialData }) => {
             <Spacings.Stack scale="s">
               <AsyncSelectField
                 title={intl.formatMessage(messages.productType)}
-                value={formData.productType.id}
+                value={productTypeValue}
                 onChange={(event) =>
                   handleInputChange('productType', {
                     id: (event.target.value as { value: string }).value,
                     typeId: 'product-type',
                   })
                 }
+                isReadOnly={!isCreate}
                 isRequired
                 defaultOptions={productTypes}
                 loadOptions={fetchProductTypes}

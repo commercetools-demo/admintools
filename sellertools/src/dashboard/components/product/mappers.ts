@@ -7,6 +7,10 @@ export const mapProductTailoringToProductFormData = (
   locale?: string
 ): ProductFormData => {
   return {
+    productType: {
+      id: product.productType?.id ?? '',
+      typeId: 'product-type',
+    },
     name: product.name?.[locale || 'en-US'] ?? '',
     description: product.description?.[locale || 'en-US'] ?? '',
     sku: product.masterVariant?.sku ?? '',
