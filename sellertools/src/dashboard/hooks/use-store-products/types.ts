@@ -1,4 +1,11 @@
-import { ProductPagedSearchResponse } from '@commercetools/platform-sdk';
+import {
+  ProductDraft,
+  ProductPagedSearchResponse,
+  ProductProjection,
+  ProductTailoring,
+  ProductTailoringInStoreDraft,
+  ProductTailoringUpdateAction,
+} from '@commercetools/platform-sdk';
 
 export interface ProductSelectionResponse {
   productSelection?: {
@@ -55,9 +62,20 @@ export interface UseStoreProductsResult {
   fetchMasterStoreProducts: () => Promise<ProductSearchResult>;
   addProductsToStore: (productIds: string[]) => Promise<boolean>;
   removeProductsFromStore: (productIds: string[]) => Promise<boolean>;
-  createProduct: (productDraft: any) => Promise<boolean>;
+  createProduct: (productDraft: ProductDraft) => Promise<boolean>;
   searchStoreProducts: (searchText: string) => Promise<ProductSearchResult>;
   searchMasterProducts: (searchText: string) => Promise<ProductSearchResult>;
+  getProductById: (productId: string) => Promise<ProductProjection>;
+  getProductTailoringInStore: (
+    productId: string
+  ) => Promise<ProductTailoring | null>;
+  createProductTailoring: (
+    product: ProductTailoringInStoreDraft
+  ) => Promise<ProductTailoring | null>;
+  updateProductTailoring: (
+    productId: string,
+    updateActions: ProductTailoringUpdateAction[]
+  ) => Promise<ProductTailoring | null>;
   loading: boolean;
   error: Error | null;
 }

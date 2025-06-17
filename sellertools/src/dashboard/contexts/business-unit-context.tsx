@@ -33,6 +33,9 @@ const GET_BUSINESS_UNIT_STORES = gql`
         distributionChannels {
           id
         }
+        supplyChannels {
+          id
+        }
       }
     }
   }
@@ -43,6 +46,9 @@ interface Store {
   key: string;
   name: string;
   distributionChannels: {
+    id: string;
+  }[];
+  supplyChannels: {
     id: string;
   }[];
 }
@@ -123,6 +129,7 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
     setMasterProductSelectionId,
     setDistributionChannelId,
     setMasterDistributionChannelId,
+    setSupplyChannelId,
   } = useAuthContext();
   const [isContextLoading, setIsContextLoading] = useState(false);
   const { getProductSelectionByStoreKey } = useProductSelections();
@@ -208,6 +215,7 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
           const storeKey = stores[0].key;
           const storeName = stores[0].name;
           const distributionChannelId = stores[0].distributionChannels?.[0]?.id;
+          const supplyChannelId = stores[0].supplyChannels?.[0]?.id;
 
           console.log(
             `Active store: "${storeName}" (${storeKey}) for business unit "${businessUnit.name}"`
@@ -219,10 +227,12 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
             if (activeStoreKey !== storeKey) {
               setStoreKey(storeKey);
               setDistributionChannelId(distributionChannelId);
+              setSupplyChannelId(supplyChannelId);
             }
           } else if (isLoggedIn && !activeStoreKey) {
             setStoreKey(storeKey);
             setDistributionChannelId(distributionChannelId);
+            setSupplyChannelId(supplyChannelId);
           }
         } else {
           console.warn(
@@ -242,6 +252,7 @@ export const BusinessUnitProvider: React.FC<BusinessUnitProviderProps> = ({
       setStoreKey,
       activeStoreKey,
       setDistributionChannelId,
+      setSupplyChannelId,
     ]
   );
 

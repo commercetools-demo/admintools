@@ -151,6 +151,10 @@ export default defineMessages({
     id: 'Products.createProductButton',
     defaultMessage: 'Create Product',
   },
+  updateProductButton: {
+    id: 'Products.updateProductButton',
+    defaultMessage: 'Update Product',
+  },
   productCreateSuccess: {
     id: 'Products.productCreateSuccess',
     defaultMessage: 'Product created successfully!',
@@ -183,5 +187,9 @@ export default defineMessages({
   tryDifferentSearch: {
     id: 'Products.tryDifferentSearch',
     defaultMessage: 'Try a different search term or browse the master catalog.',
+  },
+  productType: {
+    id: 'Products.productType',
+    defaultMessage: 'Product Type',
   },
 });

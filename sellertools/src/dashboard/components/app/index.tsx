@@ -17,6 +17,7 @@ import ProductDiscountWrapper from '../promotions/product-discount-wrapper';
 import Promotions from '../promotions/promotions';
 import Reports from '../reports/index';
 import SellerDashboard from '../seller-dashboard/seller-dashboard';
+import ProductDetails from '../product/details';
 
 const App = () => {
   const match = useRouteMatch();
@@ -60,7 +61,7 @@ const App = () => {
         <Route path={`${match.path}/customers`} exact>
           <Customers onBack={goBack} linkToWelcome={match.url} />
         </Route>
-        <Route path={`${match.path}/products`} exact>
+        <Route path={`${match.path}/products`}>
           <Products onBack={goBack} linkToWelcome={match.url} />
         </Route>
         <Route path={`${match.path}/prices`} exact>
@@ -90,6 +91,11 @@ const App = () => {
         </Route>
         <Route path={match.path} exact>
           <SellerDashboard onNavigate={handleNavigate} />
+        </Route>
+      </Switch>
+      <Switch>
+        <Route path={`${match.path}/products/:productId`} exact>
+          <ProductDetails onBack={goBack} linkToWelcome={match.url} />
         </Route>
       </Switch>
       <AIAssistantWrapper />
