@@ -15,9 +15,12 @@ type Props = {
 
 const Content = ({ onBack }: Props) => {
   const { storeKey } = useAuthContext();
+  const isDevelopment = process.env.NODE_ENV === 'development';
   const { deployedUrl, isLoading, isHealthy } = useExternalUrl({
-    storedUrlKey: CMS_DEPLOYED_URL_KEY,
-    healthCheckUrl: `/ping`,
+    storedUrlKey: isDevelopment
+      ? 'http://localhost:8080/cms'
+      : CMS_DEPLOYED_URL_KEY,
+    healthCheckUrl: `/health`,
     healthCheckHeaders: {},
   });
 

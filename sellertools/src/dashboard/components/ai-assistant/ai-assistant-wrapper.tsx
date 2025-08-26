@@ -10,9 +10,12 @@ const AIAssistantWrapper = () => {
   const { storeKey } = useAuthContext();
   const [token, setToken] = useState<string>('');
   const { environment } = useApplicationContext();
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   const { deployedUrl, isLoading, isHealthy } = useExternalUrl({
-    storedUrlKey: AI_ASSISTANT_DEPLOYED_URL_KEY,
+    storedUrlKey: isDevelopment
+      ? 'http://localhost:8080/chat'
+      : AI_ASSISTANT_DEPLOYED_URL_KEY,
     ...(storeKey && { healthCheckUrl: `/ping?storeKey=${storeKey}` }),
     ...(token && {
       healthCheckHeaders: {

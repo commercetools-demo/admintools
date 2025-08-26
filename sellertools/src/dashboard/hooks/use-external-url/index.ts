@@ -21,6 +21,12 @@ export const useExternalUrl = ({
   const { project } = useApplicationContext();
 
   const fetchDeployedUrl = useCallback(async () => {
+    if (isDevelopment) {
+      // Use the key as the deployed URL for development
+      setDeployedUrl(storedUrlKey);
+      setIsLoading(false);
+      return;
+    }
     try {
       const deployedUrlResult = await getCustomObject(storedUrlKey);
       setDeployedUrl(deployedUrlResult?.value);
@@ -33,24 +39,40 @@ export const useExternalUrl = ({
     }
   }, [getCustomObject]);
 
+  const checkHealth = useCallback(async (): Promise<boolean> => {
+    if (!deployedUrl) {
+      return false;
+    }
+    try {
+      const result = await axios.get(`${deployedUrl}${healthCheckUrl}`, {
+        headers: healthCheckHeaders,
+      });
+      if (result.status !== 200 || result.data.projectkey !== project?.key) {
+        return false;
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }, [deployedUrl, healthCheckUrl, healthCheckHeaders, project]);
+
   useEffect(() => {
     fetchDeployedUrl();
   }, [fetchDeployedUrl]);
 
   useEffect(() => {
-    const checkHealth = async () => {
-      const result = await axios.get(`${deployedUrl}${healthCheckUrl}`, {
-        headers: healthCheckHeaders,
+    if (deployedUrl && healthCheckUrl && healthCheckHeaders) {
+      checkHealth().then((isHealthy) => {
+        setIsHealthy(isHealthy);
       });
-      setIsHealthy(
-        result.status === 200 && result.data.projectkey === project?.key
-      );
-    };
-
-    if (deployedUrl && !isDevelopment && healthCheckUrl && healthCheckHeaders) {
-      checkHealth();
     }
-  }, [deployedUrl, isDevelopment, healthCheckHeaders, healthCheckUrl]);
+  }, [
+    deployedUrl,
+    isDevelopment,
+    healthCheckHeaders,
+    healthCheckUrl,
+    checkHealth,
+  ]);
 
-  return { deployedUrl, isLoading, isHealthy };
+  return { deployedUrl, isLoading, isHealthy, checkHealth };
 };

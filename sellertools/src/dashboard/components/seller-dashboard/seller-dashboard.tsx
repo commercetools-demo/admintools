@@ -13,34 +13,55 @@ import LoadingSpinner from '@commercetools-uikit/loading-spinner';
 import SelectField from '@commercetools-uikit/select-field';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useBusinessUnitContext } from '../../contexts/business-unit-context';
 import messages from './messages';
 import styles from './seller-dashboard.module.css';
+import { useExternalUrl } from '../../hooks/use-external-url';
+import { CMS_DEPLOYED_URL_KEY } from '../../../constants';
 
 type DashboardCardProps = {
   title: string;
   icon: React.ReactElement;
   onClick: () => void;
+  checkVisibility?: () => Promise<boolean>;
 };
 
 const DashboardCard: React.FC<DashboardCardProps> = ({
   title,
   icon,
   onClick,
-}) => (
-  <Card className={styles.dashboardCard} onClick={onClick}>
-    <Spacings.Stack alignItems="center" scale="m">
-      <div className={styles.iconContainer}>
-        <div className={styles.iconWrapper}>
-          {React.cloneElement(icon, { size: 'big', color: 'surface' })}
+  checkVisibility,
+}) => {
+  const [isVisible, setIsVisible] = useState(checkVisibility ? false : true);
+
+  useEffect(() => {
+    if (checkVisibility) {
+      checkVisibility().then((visible) => {
+        console.log('visible', visible);
+        setIsVisible(visible);
+      });
+    }
+  }, [checkVisibility]);
+
+  if (!isVisible) {
+    return null;
+  }
+
+  return (
+    <Card className={styles.dashboardCard} onClick={onClick}>
+      <Spacings.Stack alignItems="center" scale="m">
+        <div className={styles.iconContainer}>
+          <div className={styles.iconWrapper}>
+            {React.cloneElement(icon, { size: 'big', color: 'surface' })}
+          </div>
         </div>
-      </div>
-      <Text.Headline as="h3">{title}</Text.Headline>
-    </Spacings.Stack>
-  </Card>
-);
+        <Text.Headline as="h3">{title}</Text.Headline>
+      </Spacings.Stack>
+    </Card>
+  );
+};
 
 type SellerDashboardProps = {
   onNavigate: (route: string) => void;
@@ -65,6 +86,14 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
     error,
     selectBusinessUnit,
   } = useBusinessUnitContext();
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const { checkHealth: checkHealthCms } = useExternalUrl({
+    storedUrlKey: isDevelopment
+      ? 'http://localhost:8080/cms'
+      : CMS_DEPLOYED_URL_KEY,
+    healthCheckUrl: `/health`,
+    healthCheckHeaders: {},
+  });
 
   const handleNavigate = (route: string) => {
     onNavigate(route);
@@ -132,6 +161,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
       title: intl.formatMessage(messages.manageContent),
       icon: <FrontendStudioIcon />,
       onClick: () => handleNavigate('/content'),
+      checkVisibility: checkHealthCms,
     },
     {
       id: 'reports',
@@ -192,6 +222,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
               title={item.title}
               icon={item.icon}
               onClick={item.onClick}
+              checkVisibility={item.checkVisibility}
             />
           ))}
         </div>
