@@ -3,12 +3,11 @@ import PrimaryButton from '@commercetools-uikit/primary-button';
 import Spacings from '@commercetools-uikit/spacings';
 import Text from '@commercetools-uikit/text';
 import { CMS_DEPLOYED_URL_KEY } from '../../../constants';
-import { useAuthContext } from '../../contexts/auth-context';
-import { useExternalUrl } from '../../hooks/use-external-url';
-import ContentItem from '@commercetools-demo/contentools-content-items';
+import ContentType from '@commercetools-demo/contentools-content-types';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
-import { useRouteMatch } from 'react-router-dom';
+import { useHistory, useRouteMatch } from 'react-router-dom';
 import styled from 'styled-components';
+import { useExternalUrl } from '../../../dashboard/hooks/use-external-url';
 
 const StyledHeader = styled.div`
   display: flex;
@@ -20,14 +19,12 @@ const StyledHeader = styled.div`
 `;
 
 type Props = {
-  onBack: () => void;
   linkToWelcome: string;
 };
 
-const Content = ({ onBack }: Props) => {
+const ManageContentools = ({ linkToWelcome }: Props) => {
   const match = useRouteMatch();
-
-  const { storeKey } = useAuthContext();
+  const history = useHistory();
   const { dataLocale } = useApplicationContext();
   const isDevelopment = process.env.NODE_ENV === 'development';
   const { deployedUrl, isLoading, isHealthy } = useExternalUrl({
@@ -54,25 +51,23 @@ const Content = ({ onBack }: Props) => {
     <Spacings.Stack scale="l">
       <StyledHeader>
         <div>
-          <Text.Headline as="h1">Contentools</Text.Headline>
-          <Text.Subheadline>
-            Store: <span>{storeKey}</span>
-          </Text.Subheadline>
+          <Text.Headline as="h1">Manage Contentools</Text.Headline>
         </div>
         <Spacings.Inline scale="s">
-          <PrimaryButton label="Back to Dashboard" onClick={onBack} />
+          <PrimaryButton
+            label="Back to Dashboard"
+            onClick={() => history.push(linkToWelcome)}
+          />
         </Spacings.Inline>
       </StyledHeader>
-      {storeKey && (
-        <ContentItem
-          baseURL={deployedUrl}
-          businessUnitKey={storeKey}
-          locale={dataLocale ?? 'en-US'}
-          parentUrl={`${match.url}`.slice(1)}
-        />
-      )}
+      <ContentType
+        businessUnitKey="default"
+        baseURL={deployedUrl}
+        locale={dataLocale ?? 'en-US'}
+        parentUrl={`${match.url}`.slice(1)}
+      />
     </Spacings.Stack>
   );
 };
 
-export default Content;
+export default ManageContentools;

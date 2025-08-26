@@ -1,31 +1,28 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
 import { useHistory, useRouteMatch } from 'react-router-dom';
-import { UsersIcon, MailIcon, GearIcon } from '@commercetools-uikit/icons';
-import Spacings from '@commercetools-uikit/spacings';
+import {
+  UsersIcon,
+  MailIcon,
+  GearIcon,
+  FrontendStudioIcon,
+} from '@commercetools-uikit/icons';
 import Text from '@commercetools-uikit/text';
 import messages from './messages';
 import styles from './admin-dashboard.module.css';
-
-type TDashboardCardProps = {
-  title: string;
-  icon: React.ReactElement;
-  onClick: () => void;
-};
-
-const DashboardCard = (props: TDashboardCardProps) => (
-  <div className={styles.dashboardCard} onClick={props.onClick}>
-    <Spacings.Stack alignItems="center" scale="m">
-      <div className={styles.iconContainer}>
-        <div className={styles.iconWrapper}>{props.icon}</div>
-      </div>
-      <Text.Headline as="h3">{props.title}</Text.Headline>
-    </Spacings.Stack>
-  </div>
-);
-DashboardCard.displayName = 'DashboardCard';
+import { DashboardCard } from '../../../dashboard/components/dashboard-card';
+import { useExternalUrl } from '../../../dashboard/hooks/use-external-url';
+import { CMS_DEPLOYED_URL_KEY } from '../../../constants';
 
 const AdminDashboard = () => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const { checkHealth: checkHealthCms } = useExternalUrl({
+    storedUrlKey: isDevelopment
+      ? 'http://localhost:8080/cms'
+      : CMS_DEPLOYED_URL_KEY,
+    healthCheckUrl: `/health`,
+    healthCheckHeaders: {},
+  });
   const intl = useIntl();
   const history = useHistory();
   const match = useRouteMatch();
@@ -44,6 +41,10 @@ const AdminDashboard = () => {
 
   const handleManageFeatureFlags = () => {
     history.push(`${match.url}/manage-feature-flags`);
+  };
+
+  const handleManageContentools = () => {
+    history.push(`${match.url}/manage-contentools`);
   };
 
   return (
@@ -73,6 +74,12 @@ const AdminDashboard = () => {
           title="Manage Feature Flags"
           icon={<GearIcon size="big" color="surface" />}
           onClick={handleManageFeatureFlags}
+        />
+        <DashboardCard
+          title="Manage contentools"
+          icon={<FrontendStudioIcon size="big" color="surface" />}
+          onClick={handleManageContentools}
+          checkVisibility={checkHealthCms}
         />
       </div>
     </div>

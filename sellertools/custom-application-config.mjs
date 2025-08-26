@@ -23,8 +23,24 @@ const config = {
   },
   headers: {
     csp: {
-      'script-src': ['https://*.commercetools.app/', 'localhost:8080'],
-      'connect-src': ['https://*.commercetools.app/', 'localhost:8080'],
+      'connect-src': [
+        '*.commercetools.app',
+        'localhost:8080',
+        "'unsafe-eval'",
+      ],
+      'script-src': [
+        '*.commercetools.app',
+        'localhost:8080',
+        'cdn.jsdelivr.net',
+        'blob:',
+        "'unsafe-eval'",
+      ],
+      'style-src': [
+        'cdn.jsdelivr.net',
+      ],
+      'font-src': [
+        'cdn.jsdelivr.net',
+      ],
     },
   },
   oAuthScopes: {
@@ -106,12 +122,6 @@ const config = {
       ],
     },
   ],
-  headers: {
-    csp: {
-      'script-src': ['*.commercetools.app'],
-      'connect-src': ['*.commercetools.app'],
-    },
-  },
   icon: '${path:@commercetools-frontend/assets/application-icons/rocket.svg}',
   mainMenuLink: {
     defaultLabel: 'Sellertools',

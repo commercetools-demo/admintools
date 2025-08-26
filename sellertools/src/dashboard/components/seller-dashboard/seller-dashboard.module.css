@@ -15,25 +15,6 @@
   margin-right: auto;
 }
 
-.dashboardCard {
-  padding: var(--spacing-xl);
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border: 2px solid transparent;
-  overflow: hidden;
-}
-
-.dashboardCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  border-color: var(--color-accent-40);
-}
-
 .dashboardCard h3 {
   font-size: 18px;
   margin-top: 0;
@@ -42,25 +23,6 @@
   overflow-wrap: break-word;
 }
 
-.iconContainer {
-  padding: var(--spacing-m);
-  background-color: var(--color-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--spacing-m);
-  width: 88px;
-  height: 88px;
-  flex-shrink: 0;
-}
-
-.iconWrapper {
-  transform: scale(1.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 .headerContainer {
   display: flex;
