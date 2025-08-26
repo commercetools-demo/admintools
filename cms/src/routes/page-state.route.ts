@@ -7,6 +7,7 @@ import {
 } from 'express';
 import { logger } from '../utils/logger.utils';
 import { CustomObjectController } from '../controllers/custom-object.controller';
+import CustomError from '../errors/custom.error';
 
 const pageStateRouter = Router();
 export const PAGE_STATE_CONTAINER =
@@ -33,7 +34,9 @@ pageStateRouter.get(
             states: {},
           });
         } else {
-          throw error;
+          const statusCode = (error as any).statusCode || 500;
+          const message = (error as any).message || 'Internal server error';
+          throw new CustomError(statusCode, message);
         }
       }
     } catch (error) {
@@ -73,7 +76,9 @@ pageStateRouter.put('/:businessUnitKey/pages/:key/states/draft', (async (
           states: {},
         };
       } else {
-        throw error;
+        const statusCode = (error as any).statusCode || 500;
+        const message = (error as any).message || 'Internal server error';
+        throw new CustomError(statusCode, message);
       }
     }
 
@@ -121,7 +126,9 @@ pageStateRouter.put('/:businessUnitKey/pages/:key/states/published', (async (
           states: {},
         };
       } else {
-        throw error;
+        const statusCode = (error as any).statusCode || 500;
+        const message = (error as any).message || 'Internal server error';
+        throw new CustomError(statusCode, message);
       }
     }
 
@@ -170,7 +177,9 @@ pageStateRouter.delete('/:businessUnitKey/pages/:key/states/draft', (async (
       if ((error as any).statusCode === 404) {
         return res.status(404).json({ error: 'State not found' });
       }
-      throw error;
+      const statusCode = (error as any).statusCode || 500;
+      const message = (error as any).message || 'Internal server error';
+      throw new CustomError(statusCode, message);
     }
   } catch (error) {
     logger.error('Failed to delete draft state:', error);

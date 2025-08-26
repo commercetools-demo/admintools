@@ -1,10 +1,8 @@
 import { Router, RequestHandler } from 'express';
 import { logger } from '../utils/logger.utils';
 import { CustomObjectController } from '../controllers/custom-object.controller';
-import { sampleContentTypeRegistry } from '../utils/constants';
-
-export const CONTENT_TYPE_CONTAINER =
-  process.env.CONTENT_TYPE_CONTAINER || 'content-type';
+import { CONTENT_TYPE_CONTAINER } from '../constants';
+import { v4 as uuidv4 } from 'uuid';
 
 const contentTypeController = new CustomObjectController(
   CONTENT_TYPE_CONTAINER
@@ -14,10 +12,13 @@ const contentTypeRouter = Router();
 contentTypeRouter.get('/content-type', async (req, res, next) => {
   try {
     const dynamicContentTypes = await contentTypeController.getCustomObjects();
-    const staticContentTypes = Object.values(sampleContentTypeRegistry);
+
     res.json([
-      ...dynamicContentTypes.map((item) => item.value),
-      ...staticContentTypes,
+      ...dynamicContentTypes.map((item) => ({
+        id: item.id,
+        key: item.key,
+        ...item.value,
+      })),
     ]);
   } catch (error) {
     logger.error('Failed to get content-type objects:', error);
@@ -29,7 +30,11 @@ contentTypeRouter.get('/content-type/:key', async (req, res, next) => {
   try {
     const { key } = req.params;
     const object = await contentTypeController.getCustomObject(key);
-    res.json(object);
+    res.json({
+      id: object.key,
+      key: object.key,
+      ...object.value,
+    });
   } catch (error) {
     logger.error(
       `Failed to get content-type object with key ${req.params.key}:`,
@@ -39,25 +44,14 @@ contentTypeRouter.get('/content-type/:key', async (req, res, next) => {
   }
 });
 
-contentTypeRouter.post('/content-type/:key', (async (req, res, next) => {
+contentTypeRouter.post('/content-type', (async (req, res, next) => {
   try {
-    // return error if key exists
-    const { key } = req.params;
-    try {
-      const objectExists = await contentTypeController.getCustomObject(key);
-      if (objectExists) {
-        return res
-          .status(400)
-          .json({ error: 'content-type object with key already exists' });
-      }
-    } catch (error) {
-      logger.error(
-        `Failed to get content-type object with key ${req.params.key}:`,
-        error
-      );
-    }
+    const key = `type-${uuidv4()}`;
     const { value } = req.body;
-    const object = await contentTypeController.createCustomObject(key, value);
+    const object = await contentTypeController.createCustomObject(key, {
+      ...value,
+      key,
+    });
     res.status(201).json(object);
   } catch (error) {
     logger.error(

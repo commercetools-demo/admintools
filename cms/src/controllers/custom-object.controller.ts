@@ -134,7 +134,6 @@ export class CustomObjectController {
    * @returns Array of custom objects
    */
   getCustomObjects = async (query?: string) => {
-    console.log('getCustomObjects', this.container, query);
     const whereClause = [`container = "${this.container}"`];
     if (query) {
       whereClause.push(query);

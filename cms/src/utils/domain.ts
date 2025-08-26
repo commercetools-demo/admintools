@@ -4,7 +4,8 @@ export const extractMainDomain = (url: string) => {
     /^(?:https?:\/\/)?(?:.+\.)?([a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9-]*(?:\.[a-z]{2,})?)(?:\/|$)/i;
 
   // For localhost or IP addresses (including subdomains for localhost)
-  const localhostRegex = /^(?:https?:\/\/)?(?:.*\.)?(localhost(?::\d+)?)(?:\/|$)/i;
+  const localhostRegex =
+    /^(?:https?:\/\/)?(?:.*\.)?(localhost(?::\d+)?)(?:\/|$)/i;
 
   let match = url.match(domainRegex);
   if (match && match[1]) {

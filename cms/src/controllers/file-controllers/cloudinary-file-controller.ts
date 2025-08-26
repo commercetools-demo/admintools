@@ -16,12 +16,103 @@ interface CloudinaryResource {
 }
 
 export class CloudinaryFileController implements FileController {
+  private static readonly IMAGE_FORMATS = new Set([
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'webp',
+  ]);
+
   constructor() {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
+  }
+
+  private normalizeExtensions(extensions: string[]): string[] {
+    return (extensions || []).map((ext) => ext.toLowerCase());
+  }
+
+  private filterResourcesByExtensions(
+    resources: CloudinaryResource[],
+    extensions: string[]
+  ): CloudinaryResource[] {
+    const normalized = this.normalizeExtensions(extensions);
+    if (normalized.length === 0) return resources;
+
+    return resources.filter((resource: CloudinaryResource) => {
+      const fileName = resource.public_id.split('/').pop() || '';
+      const formatLower = (resource.format || '').toLowerCase();
+      const fileNameLower = fileName.toLowerCase();
+
+      if (normalized.includes(formatLower)) return true;
+      return normalized.some((ext) => fileNameLower.endsWith(`.${ext}`));
+    });
+  }
+
+  private paginate<T>(
+    items: T[],
+    page: number,
+    limit: number
+  ): {
+    paginated: T[];
+    totalItems: number;
+    totalPages: number;
+  } {
+    const totalItems = items.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const startIndex = (page - 1) * limit;
+    const paginated = items.slice(startIndex, startIndex + limit);
+    return { paginated, totalItems, totalPages };
+  }
+
+  private async fetchResourceContext(
+    publicId: string
+  ): Promise<{ title?: string; description?: string } | undefined> {
+    try {
+      const resourceInfo = await cloudinary.api.resource(publicId, {
+        context: true,
+      });
+      const custom = resourceInfo.context?.custom;
+      if (!custom) return undefined;
+      return {
+        title: custom.title ? String(custom.title) : undefined,
+        description: custom.description
+          ? String(custom.description)
+          : undefined,
+      };
+    } catch (error) {
+      logger.error(`Failed to fetch context for resource ${publicId}:`, error);
+      return undefined;
+    }
+  }
+
+  private isImage(format: string | undefined): boolean {
+    if (!format) return false;
+    return CloudinaryFileController.IMAGE_FORMATS.has(format.toLowerCase());
+  }
+
+  private async toMediaFile(resource: CloudinaryResource) {
+    const fileName = resource.public_id.split('/').pop() || '';
+    const displayName = `${fileName}.${resource.format}`;
+    const isImage = this.isImage(resource.format);
+
+    const context = await this.fetchResourceContext(resource.public_id);
+
+    return {
+      url: resource.secure_url,
+      name: displayName,
+      title: context?.title,
+      description: context?.description,
+      isImage,
+      createdAt: resource.created_at
+        ? new Date(resource.created_at)
+        : undefined,
+      size: resource.bytes,
+    };
   }
 
   async uploadFile(
@@ -66,95 +157,29 @@ export class CloudinaryFileController implements FileController {
     limit: number
   ): Promise<MediaLibraryResult> {
     try {
-      // Cloudinary API allows searching by folder
       const searchParams: any = {
         type: 'upload',
         prefix: 'uploads/',
-        max_results: 500, // Max allowed by Cloudinary
+        max_results: 500,
       };
 
       const result = await cloudinary.api.resources(searchParams);
       const resources = (result.resources as CloudinaryResource[]) || [];
 
-      // Filter resources by extensions if provided
-      let filteredResources = resources;
-      if (extensions.length > 0) {
-        filteredResources = resources.filter((resource: CloudinaryResource) => {
-          const fileName = resource.public_id.split('/').pop() || '';
-          return extensions.some((ext) => {
-            // Check if the format or filename ends with the extension
-            return (
-              resource.format === ext.toLowerCase() ||
-              fileName.toLowerCase().endsWith(`.${ext.toLowerCase()}`)
-            );
-          });
-        });
-      }
-
-      // Calculate pagination
-      const totalItems = filteredResources.length;
-      const totalPages = Math.ceil(totalItems / limit);
-
-      // Apply pagination
-      const startIndex = (page - 1) * limit;
-      const paginatedResources = filteredResources.slice(
-        startIndex,
-        startIndex + limit
+      const filteredResources = this.filterResourcesByExtensions(
+        resources,
+        extensions
       );
 
-      // Format the resources
-      const filePromises = paginatedResources.map(
-        async (resource: CloudinaryResource) => {
-          const fileName = resource.public_id.split('/').pop() || '';
-          const displayName = `${fileName}.${resource.format}`;
-          const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(
-            resource.format
-          );
-
-          // Fetch context (metadata) for the resource
-          try {
-            const resourceInfo = await cloudinary.api.resource(
-              resource.public_id,
-              { context: true }
-            );
-            let title, description;
-
-            if (resourceInfo.context && resourceInfo.context.custom) {
-              title = resourceInfo.context.custom.title;
-              description = resourceInfo.context.custom.description;
-            }
-
-            return {
-              url: resource.secure_url,
-              name: displayName,
-              title: title ? String(title) : undefined,
-              description: description ? String(description) : undefined,
-              isImage,
-              createdAt: resource.created_at
-                ? new Date(resource.created_at)
-                : undefined,
-              size: resource.bytes,
-            };
-          } catch (error) {
-            // If context fetch fails, return without metadata
-            logger.error(
-              `Failed to fetch context for resource ${resource.public_id}:`,
-              error
-            );
-            return {
-              url: resource.secure_url,
-              name: displayName,
-              isImage,
-              createdAt: resource.created_at
-                ? new Date(resource.created_at)
-                : undefined,
-              size: resource.bytes,
-            };
-          }
-        }
+      const { paginated, totalItems, totalPages } = this.paginate(
+        filteredResources,
+        page,
+        limit
       );
 
-      const files = await Promise.all(filePromises);
+      const files = await Promise.all(
+        paginated.map((resource) => this.toMediaFile(resource))
+      );
 
       return {
         files,

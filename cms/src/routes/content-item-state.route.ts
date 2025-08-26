@@ -6,14 +6,10 @@ import {
   RequestHandler,
 } from 'express';
 import { logger } from '../utils/logger.utils';
-import { CustomObjectController } from '../controllers/custom-object.controller';
+import * as ContentStateController from '../controllers/content-state-controller';
+import CustomError from '../errors/custom.error';
 
 const contentItemStateRouter = Router();
-export const CONTENT_ITEM_STATE_CONTAINER =
-  process.env.CONTENT_ITEM_STATE_CONTAINER || 'content-item-state';
-const stateController = new CustomObjectController(
-  CONTENT_ITEM_STATE_CONTAINER
-);
 
 // Get states for a content item
 contentItemStateRouter.get(
@@ -24,8 +20,8 @@ contentItemStateRouter.get(
       const stateKey = `${businessUnitKey}_${key}`;
 
       try {
-        const object = await stateController.getCustomObject(stateKey);
-        res.json(object.value);
+        const object = await ContentStateController.getState(stateKey);
+        res.json(object);
       } catch (error) {
         // If not found, return empty states object
         if ((error as any).statusCode === 404) {
@@ -35,7 +31,7 @@ contentItemStateRouter.get(
             states: {},
           });
         } else {
-          throw error;
+          throw new CustomError(500, 'Failed to get states');
         }
       }
     } catch (error) {
@@ -50,41 +46,12 @@ contentItemStateRouter.put(
   '/:businessUnitKey/content-items/:key/states/draft',
   (async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { businessUnitKey, key } = req.params;
-      const stateKey = `${businessUnitKey}_${key}`;
-      const { value } = req.body;
-
-      if (!value) {
-        return res
-          .status(400)
-          .json({ error: 'Value is required in the request body' });
-      }
-
-      let existingStates;
-      try {
-        const existingObject = await stateController.getCustomObject(stateKey);
-        existingStates = existingObject.value;
-      } catch (error) {
-        // Create if not exists
-        if ((error as any).statusCode === 404) {
-          existingStates = {
-            key,
-            businessUnitKey,
-            states: {},
-          };
-        } else {
-          throw error;
-        }
-      }
-
-      // Update draft state
-      existingStates.states.draft = value;
-
-      const object = await stateController.updateCustomObject(
-        stateKey,
-        existingStates
+      const state = await ContentStateController.createDraftState(
+        req.params.businessUnitKey,
+        req.params.key,
+        req.body
       );
-      res.json(object.value);
+      res.json(state);
     } catch (error) {
       logger.error('Failed to save draft state:', error);
       next(error);
@@ -97,46 +64,17 @@ contentItemStateRouter.put(
   '/:businessUnitKey/content-items/:key/states/published',
   (async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const { clearDraft } = req.query;
       const { businessUnitKey, key } = req.params;
-      const stateKey = `${businessUnitKey}_${key}`;
       const { value } = req.body;
 
-      if (!value) {
-        return res
-          .status(400)
-          .json({ error: 'Value is required in the request body' });
-      }
-
-      let existingStates;
-      try {
-        const existingObject = await stateController.getCustomObject(stateKey);
-        existingStates = existingObject.value;
-      } catch (error) {
-        // Create if not exists
-        if ((error as any).statusCode === 404) {
-          existingStates = {
-            key,
-            businessUnitKey,
-            states: {},
-          };
-        } else {
-          throw error;
-        }
-      }
-
-      // Update published state
-      existingStates.states.published = value;
-
-      // If requested specifically, also remove draft state
-      if (req.query.clearDraft === 'true') {
-        existingStates.states.draft = undefined;
-      }
-
-      const object = await stateController.updateCustomObject(
-        stateKey,
-        existingStates
+      const state = await ContentStateController.createPublishedState(
+        businessUnitKey,
+        key,
+        value,
+        clearDraft === 'true'
       );
-      res.json(object.value);
+      res.json(state);
     } catch (error) {
       logger.error('Failed to publish state:', error);
       next(error);
@@ -150,26 +88,12 @@ contentItemStateRouter.delete(
   (async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { businessUnitKey, key } = req.params;
-      const stateKey = `${businessUnitKey}_${key}`;
 
-      try {
-        const existingObject = await stateController.getCustomObject(stateKey);
-        const existingStates = existingObject.value;
-
-        // Remove draft
-        existingStates.states.draft = undefined;
-
-        const object = await stateController.updateCustomObject(
-          stateKey,
-          existingStates
-        );
-        res.json(object.value);
-      } catch (error) {
-        if ((error as any).statusCode === 404) {
-          return res.status(404).json({ error: 'State not found' });
-        }
-        throw error;
-      }
+      const state = await ContentStateController.deleteDraftState(
+        businessUnitKey,
+        key
+      );
+      res.json(state);
     } catch (error) {
       logger.error('Failed to delete draft state:', error);
       next(error);

@@ -3,8 +3,8 @@ import multer from 'multer';
 import { FileControllerFactory } from '../controllers/file-controller';
 import { Router, RequestHandler } from 'express';
 import { CustomObjectController } from '../controllers/custom-object.controller';
-import { CONTENT_TYPE_CONTAINER } from './content-type.route';
 import { bundleCode } from '../utils/bundler.utils';
+import { CONTENT_TYPE_CONTAINER } from '../constants';
 
 const fileRouter = Router();
 

@@ -8,6 +8,8 @@ import {
 import { logger } from '../utils/logger.utils';
 import { CustomObjectController } from '../controllers/custom-object.controller';
 import { v4 as uuidv4 } from 'uuid';
+import { MAX_VERSIONS } from '../constants';
+import CustomError from '../errors/custom.error';
 
 const pageVersionRouter = Router();
 export const PAGE_VERSION_CONTAINER =
@@ -34,7 +36,7 @@ pageVersionRouter.get(
             versions: [],
           });
         } else {
-          throw error;
+          throw new CustomError(500, 'Failed to get versions');
         }
       }
     } catch (error) {
@@ -79,7 +81,6 @@ pageVersionRouter.post('/:businessUnitKey/pages/:key/versions', (async (
     const { businessUnitKey, key } = req.params;
     const versionKey = `${businessUnitKey}_${key}`;
     const { value } = req.body;
-    const maxVersions = parseInt(process.env.MAX_VERSIONS || '5', 10);
 
     if (!value) {
       return res
@@ -101,7 +102,7 @@ pageVersionRouter.post('/:businessUnitKey/pages/:key/versions', (async (
           versions: [],
         };
       } else {
-        throw error;
+        throw new CustomError(500, 'Failed to save version');
       }
     }
 
@@ -115,10 +116,10 @@ pageVersionRouter.post('/:businessUnitKey/pages/:key/versions', (async (
     existingVersions.versions.unshift(newVersion);
 
     // Trim versions to max allowed
-    if (existingVersions.versions.length > maxVersions) {
+    if (existingVersions.versions.length > MAX_VERSIONS) {
       existingVersions.versions = existingVersions.versions.slice(
         0,
-        maxVersions
+        MAX_VERSIONS
       );
     }
 

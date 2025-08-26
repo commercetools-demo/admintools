@@ -1,4 +1,3 @@
-
 /**
  * Read the configuration env vars
  * (Add yours accordingly)

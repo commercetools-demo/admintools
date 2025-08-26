@@ -3,7 +3,10 @@ dotenv.config();
 
 import { createApiRoot } from '../client/create.client';
 import { assertError, assertString } from '../utils/assert.utils';
-import { createCustomObject } from './actions';
+import {
+  createDefaultDatasources,
+  createServiceURLStorageLink,
+} from './actions';
 
 const CONNECT_APPLICATION_URL_KEY = 'CONNECT_SERVICE_URL';
 
@@ -13,7 +16,8 @@ async function postDeploy(properties: Map<string, unknown>): Promise<void> {
   assertString(applicationUrl, CONNECT_APPLICATION_URL_KEY);
 
   const apiRoot = createApiRoot();
-  await createCustomObject(apiRoot, applicationUrl);
+  await createServiceURLStorageLink(apiRoot, applicationUrl);
+  await createDefaultDatasources(apiRoot);
 }
 
 async function run(): Promise<void> {

@@ -1,54 +1,25 @@
 import {
-  Router,
-  Request,
-  Response,
   NextFunction,
+  Request,
   RequestHandler,
+  Response,
+  Router,
 } from 'express';
+import * as ContentItemController from '../controllers/content-item.controller';
 import { logger } from '../utils/logger.utils';
-import { CustomObjectController } from '../controllers/custom-object.controller';
-import { ContentItemController } from '../controllers/content-item.controller';
-import { CONTENT_ITEM_STATE_CONTAINER } from './content-item-state.route';
+import CustomError from '../errors/custom.error';
 
 const contentItemRouter = Router();
-export const CONTENT_ITEM_CONTAINER =
-  process.env.CONTENT_ITEM_CONTAINER || 'content-item';
-const contentController = new CustomObjectController(CONTENT_ITEM_CONTAINER);
 
 contentItemRouter.get(
   '/:businessUnitKey/content-items',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const contentStateController = new CustomObjectController(
-        CONTENT_ITEM_STATE_CONTAINER
-      );
       const { businessUnitKey } = req.params;
-      const contentItems = await contentController.getCustomObjects(
-        `value(businessUnitKey = "${businessUnitKey}")`
-      );
+      const contentItems =
+        await ContentItemController.getContentItems(businessUnitKey);
 
-      const whereClause = contentItems
-        ?.map(
-          (item) =>
-            `(key = "${item.key}" AND businessUnitKey = "${businessUnitKey}")`
-        )
-        .join(' OR ');
-      const contentItemStates = whereClause
-        ? await contentStateController.getCustomObjects(`value(${whereClause})`)
-        : [];
-
-      // Merge content items with their states
-      const contentItemsWithStates = contentItems.map((item) => {
-        const states = contentItemStates.find(
-          (state) => state.value.key === item.key
-        );
-        return {
-          ...item,
-          states: states?.value?.states || {},
-        };
-      });
-
-      res.json(contentItemsWithStates);
+      res.json(contentItems);
     } catch (error) {
       logger.error('Failed to get custom objects:', error);
       next(error);
@@ -59,36 +30,13 @@ contentItemRouter.get(
   '/:businessUnitKey/content-items/content-type/:contentType',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const contentStateController = new CustomObjectController(
-        CONTENT_ITEM_STATE_CONTAINER
-      );
-      const { businessUnitKey } = req.params;
-      const contentItems = await contentController.getCustomObjects(
-        `value(businessUnitKey = "${businessUnitKey}") AND value(type = "${req.params.contentType}")`
+      const { businessUnitKey, contentType } = req.params;
+      const contentItems = await ContentItemController.getContentItems(
+        businessUnitKey,
+        `value(type = "${contentType}")`
       );
 
-      const whereClause = contentItems
-        ?.map(
-          (item) =>
-            `(key = "${item.key}" AND businessUnitKey = "${businessUnitKey}")`
-        )
-        .join(' OR ');
-      const contentItemStates = whereClause
-        ? await contentStateController.getCustomObjects(`value(${whereClause})`)
-        : [];
-
-      // Merge content items with their states
-      const contentItemsWithStates = contentItems.map((item) => {
-        const states = contentItemStates.find(
-          (state) => state.value.key === item.key
-        );
-        return {
-          ...item,
-          states: states?.value?.states || {},
-        };
-      });
-
-      res.json(contentItemsWithStates);
+      res.json(contentItems);
     } catch (error) {
       logger.error('Failed to get custom objects:', error);
       next(error);
@@ -100,19 +48,13 @@ contentItemRouter.get(
   '/:businessUnitKey/content-items/:key',
   async (req, res, next) => {
     try {
-      const { key } = req.params;
+      const { key, businessUnitKey } = req.params;
+      const contentItem = await ContentItemController.getContentItem(key);
 
-      const contentItem = await contentController.getCustomObject(key);
       if (!contentItem) {
-        throw new Error('Content item not found');
+        throw new CustomError(404, 'Content item not found');
       }
-      const contentItemController = new ContentItemController(
-        contentController
-      );
-      const object = await contentItemController.getContentItem(
-        contentItem.value
-      );
-      res.json(object);
+      res.json(contentItem);
     } catch (error) {
       logger.error(
         `Failed to get custom object with key ${req.params.key}:`,
@@ -128,30 +70,76 @@ contentItemRouter.get(
   async (req, res, next) => {
     try {
       const { key, businessUnitKey } = req.params;
-      const contentStateController = new CustomObjectController(
-        CONTENT_ITEM_STATE_CONTAINER
-      );
 
-      const contentItemStates = await contentStateController.getCustomObjects(
-        `value(key = "${key}" AND businessUnitKey = "${businessUnitKey}")`
+      const object = await ContentItemController.getPublishedContentItem(
+        businessUnitKey,
+        key
       );
-      if (
-        contentItemStates.length === 0 ||
-        !contentItemStates[0].value.states ||
-        !contentItemStates[0].value.states.published
-      ) {
-        throw new Error('Content item not found');
+      if (!object) {
+        throw new CustomError(404, 'Content item not found');
       }
-      const contentItemController = new ContentItemController(
-        contentController
-      );
-      const object = await contentItemController.getContentItem(
-        contentItemStates[0].value.states.published
-      );
       res.json(object);
     } catch (error) {
       logger.error(
-        `Failed to get custom object with key ${req.params.key}:`,
+        `Failed to get published content with key ${req.params.key}:`,
+        error
+      );
+      next(error);
+    }
+  }
+);
+
+contentItemRouter.post(
+  '/:businessUnitKey/published/content-items/query',
+  async (req, res, next) => {
+    try {
+      const { businessUnitKey } = req.params;
+      const { query } = req.body;
+
+      if (!query) {
+        throw new CustomError(400, 'Query is required in the request body');
+      }
+
+      const object = await ContentItemController.queryPublishedContentItem(
+        businessUnitKey,
+        query
+      );
+      if (!object) {
+        throw new CustomError(404, 'Content item not found');
+      }
+      res.json(object);
+    } catch (error) {
+      logger.error(
+        `Failed to query published content with query ${req.body.query}:`,
+        error
+      );
+      next(error);
+    }
+  }
+);
+
+contentItemRouter.post(
+  '/:businessUnitKey/preview/content-items/query',
+  async (req, res, next) => {
+    try {
+      const { businessUnitKey } = req.params;
+      const { query } = req.body;
+
+      if (!query) {
+        throw new CustomError(400, 'Query is required in the request body');
+      }
+
+      const object = await ContentItemController.queryContentItem(
+        businessUnitKey,
+        query
+      );
+      if (!object) {
+        throw new CustomError(404, 'Content item not found');
+      }
+      res.json(object);
+    } catch (error) {
+      logger.error(
+        `Failed to query content with query ${req.body.query}:`,
         error
       );
       next(error);
@@ -164,29 +152,14 @@ contentItemRouter.get(
   async (req, res, next) => {
     try {
       const { key, businessUnitKey } = req.params;
-      const contentStateController = new CustomObjectController(
-        CONTENT_ITEM_STATE_CONTAINER
+      logger.info(
+        `Getting preview for content item ${key} in business unit ${businessUnitKey}`
+      );
+      const object = await ContentItemController.getContentItemWithStates(
+        businessUnitKey,
+        key
       );
 
-      const contentItemStates = await contentStateController.getCustomObjects(
-        `value(key = "${key}" AND businessUnitKey = "${businessUnitKey}")`
-      );
-      if (
-        contentItemStates.length === 0 ||
-        !contentItemStates[0].value.states ||
-        (!contentItemStates[0].value.states.draft &&
-          !contentItemStates[0].value.states.published)
-      ) {
-        throw new Error('Content item not found');
-      }
-
-      const contentItemController = new ContentItemController(
-        contentController
-      );
-      const object = await contentItemController.getContentItem(
-        contentItemStates[0].value.states.draft ||
-          contentItemStates[0].value.states.published
-      );
       res.json(object);
     } catch (error) {
       logger.error(
@@ -198,13 +171,13 @@ contentItemRouter.get(
   }
 );
 
-contentItemRouter.post('/:businessUnitKey/content-items/:key', (async (
+contentItemRouter.post('/:businessUnitKey/content-items', (async (
   req,
   res,
   next
 ) => {
   try {
-    const { businessUnitKey, key } = req.params;
+    const { businessUnitKey } = req.params;
     const { value } = req.body;
 
     if (!value) {
@@ -213,10 +186,10 @@ contentItemRouter.post('/:businessUnitKey/content-items/:key', (async (
         .json({ error: 'Value is required in the request body' });
     }
 
-    const object = await contentController.createCustomObject(key, {
-      ...value,
+    const object = await ContentItemController.createContentItem(
       businessUnitKey,
-    });
+      value
+    );
     res.status(201).json(object);
   } catch (error) {
     logger.error(
@@ -241,11 +214,11 @@ contentItemRouter.put('/:businessUnitKey/content-items/:key', (async (
         .status(400)
         .json({ error: 'Value is required in the request body' });
     }
-
-    const object = await contentController.updateCustomObject(key, {
-      ...value,
+    const object = await ContentItemController.updateContentItem(
       businessUnitKey,
-    });
+      key,
+      value
+    );
     res.json(object);
   } catch (error) {
     logger.error(
@@ -260,8 +233,8 @@ contentItemRouter.delete(
   '/:businessUnitKey/content-items/:key',
   async (req, res, next) => {
     try {
-      const { key } = req.params;
-      await contentController.deleteCustomObject(key);
+      const { key, businessUnitKey } = req.params;
+      await ContentItemController.deleteContentItem(businessUnitKey, key);
       res.status(204).send();
     } catch (error) {
       logger.error(
