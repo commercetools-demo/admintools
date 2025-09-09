@@ -23,7 +23,9 @@
     "@apollo/client": "3.7.14",
     "@babel/core": "^7.22.17",
     "@babel/runtime-corejs3": "^7.22.15",
-    "@commercetools-demo/cms-asset": "0.7.3",
+    "@commercetools-demo/contentools-content-items": "^1.0.4",
+    "@commercetools-demo/contentools-content-types": "^1.0.4",
+    "@commercetools-demo/contentools-state": "^1.0.4",
     "@commercetools-frontend/actions-global": "24.0.0",
     "@commercetools-frontend/application-components": "24.0.0",
     "@commercetools-frontend/application-config": "24.0.0",
@@ -103,6 +105,9 @@
     "zod": "^3.25.51"
   },
   "resolutions": {
+    "form-data": "^3.0.4",
+    "loader-utils": "^2.0.3",
+    "nth-check": "^2.0.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@types/react-router": "<6",
