@@ -6,7 +6,7 @@ import { useAuthContext } from '../../contexts/auth-context';
 import { useBusinessUnitContext } from '../../contexts/business-unit-context';
 import AIAssistantWrapper from '../ai-assistant/ai-assistant-wrapper';
 import Configuration from '../configuration';
-import Content from '../content/index';
+// import Content from '../content/index';
 import CustomerDetailsModal from '../customers/customer-details-modal';
 import Customers from '../customers/customers';
 import OrderDetailsModal from '../orders/order-details-modal';
@@ -81,7 +81,7 @@ const App = () => {
           />
         </Route>
         <Route path={`${match.path}/content`} exact>
-          <Content onBack={goBack} linkToWelcome={match.url} />
+          {/* <Content onBack={goBack} linkToWelcome={match.url} /> */}
         </Route>
         <Route path={`${match.path}/reports`} exact>
           <Reports onBack={goBack} linkToWelcome={match.url} />
