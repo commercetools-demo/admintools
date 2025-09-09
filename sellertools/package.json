@@ -105,6 +105,9 @@
     "zod": "^3.25.51"
   },
   "resolutions": {
+    "form-data": "^3.0.4",
+    "loader-utils": "^2.0.3",
+    "nth-check": "^2.0.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@types/react-router": "<6",
