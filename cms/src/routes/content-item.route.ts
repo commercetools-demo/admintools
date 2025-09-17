@@ -100,9 +100,10 @@ contentItemRouter.post(
         throw new CustomError(400, 'Query is required in the request body');
       }
 
-      const object = await ContentItemController.queryPublishedContentItem(
+      const object = await ContentItemController.queryContentItem(
         businessUnitKey,
-        query
+        query,
+        'published'
       );
       if (!object) {
         throw new CustomError(404, 'Content item not found');
@@ -131,7 +132,8 @@ contentItemRouter.post(
 
       const object = await ContentItemController.queryContentItem(
         businessUnitKey,
-        query
+        query,
+        ['draft', 'published']
       );
       if (!object) {
         throw new CustomError(404, 'Content item not found');
@@ -155,7 +157,7 @@ contentItemRouter.get(
       logger.info(
         `Getting preview for content item ${key} in business unit ${businessUnitKey}`
       );
-      const object = await ContentItemController.getContentItemWithStates(
+      const object = await ContentItemController.getPreviewContentItem(
         businessUnitKey,
         key
       );

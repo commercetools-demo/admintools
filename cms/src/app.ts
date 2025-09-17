@@ -48,7 +48,7 @@ app.use((req, res, next) => {
 });
 
 // Define routes
-app.use('/cms', ServiceRoutes);
+app.use('/service', ServiceRoutes);
 app.use('*', () => {
   throw new CustomError(404, 'Path not found.');
 });

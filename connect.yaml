@@ -51,7 +51,7 @@ deployAs:
     applicationType: service
     scripts:
       postDeploy: node build/connector/post-deploy.js
-    endpoint: /cms
+    endpoint: /service
     configuration:
       standardConfiguration:
         - key: STORAGE_TYPE

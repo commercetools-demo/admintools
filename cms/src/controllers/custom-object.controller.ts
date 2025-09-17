@@ -50,13 +50,17 @@ export class CustomObjectController {
    * @param key The custom object key
    * @returns The custom object if found
    */
-  getCustomObject = async (key: string) => {
+  getCustomObject = async (key: string, expand?: string[]) => {
     try {
       const apiRoot = createApiRoot();
       const response = await apiRoot
         .customObjects()
         .withContainerAndKey({ container: this.container, key })
-        .get()
+        .get({
+          queryArgs: {
+            ...(expand ? { expand } : {}),
+          },
+        })
         .execute();
 
       return response.body;
@@ -79,7 +83,7 @@ export class CustomObjectController {
    * @param value The new value
    * @returns The updated custom object
    */
-  updateCustomObject = async (key: string, value: any) => {
+  updateCustomObject = async (key: string, value: any, expand?: string[]) => {
     try {
       const apiRoot = createApiRoot();
       const response = await apiRoot
@@ -89,6 +93,9 @@ export class CustomObjectController {
             container: this.container,
             key,
             value,
+          },
+          queryArgs: {
+            ...(expand ? { expand } : {}),
           },
         })
         .execute();
@@ -111,7 +118,7 @@ export class CustomObjectController {
   deleteCustomObject = async (key: string) => {
     try {
       const apiRoot = createApiRoot();
-      await apiRoot
+      return apiRoot
         .customObjects()
         .withContainerAndKey({ container: this.container, key })
         .delete()
@@ -129,22 +136,62 @@ export class CustomObjectController {
   };
 
   /**
-   * Get all custom objects in a container
+   * Delete a custom object
    * @param container The container name
-   * @returns Array of custom objects
+   * @param key The custom object key
    */
-  getCustomObjects = async (query?: string) => {
-    const whereClause = [`container = "${this.container}"`];
-    if (query) {
-      whereClause.push(query);
-    }
+  deleteCustomObjectById = async (id: string) => {
     try {
       const apiRoot = createApiRoot();
       const response = await apiRoot
         .customObjects()
+        .withContainer({ container: this.container })
         .get({
           queryArgs: {
-            where: whereClause.join(' and '),
+            where: `id="${id}"`,
+          },
+        })
+        .execute();
+      await apiRoot
+        .customObjects()
+        .withContainerAndKey({
+          container: this.container,
+          key: response.body.results[0].key,
+        })
+        .delete()
+        .execute();
+    } catch (error) {
+      const apiError = error as CommercetoolsError;
+      if (apiError.statusCode === 404) {
+        throw new CustomError(404, `Custom object not found with id: ${id}`);
+      }
+      throw new CustomError(
+        apiError.statusCode || 500,
+        `Failed to delete custom object: ${apiError.message}`
+      );
+    }
+  };
+
+  /**
+   * Get all custom objects in a container
+   * @param container The container name
+   * @returns Array of custom objects
+   */
+  getCustomObjects = async (query?: string, expand?: string[]) => {
+    const whereClause = [];
+    if (query) {
+      whereClause.push(query);
+    }
+    const whereClauseString = whereClause.join(' and ');
+    try {
+      const apiRoot = createApiRoot();
+      const response = await apiRoot
+        .customObjects()
+        .withContainer({ container: this.container })
+        .get({
+          queryArgs: {
+            ...(whereClauseString ? { where: whereClauseString } : {}),
+            ...(expand ? { expand } : {}),
           },
         })
         .execute();

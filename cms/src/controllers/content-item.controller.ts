@@ -1,12 +1,40 @@
 import { v4 as uuidv4 } from 'uuid';
-import { CONTENT_ITEM_CONTAINER, CONTENT_TYPE_CONTAINER } from '../constants';
+import {
+  CONTENT_ITEM_CONTAINER,
+  CONTENT_ITEM_STATE_CONTAINER,
+  CONTENT_ITEM_VERSION_CONTAINER,
+  CONTENT_TYPE_CONTAINER,
+  MAX_VERSIONS,
+} from '../constants';
+import CustomError from '../errors/custom.error';
 import { sampleContentTypeRegistry } from '../utils/constants';
 import { logger } from '../utils/logger.utils';
-import * as ContentStateController from './content-state-controller';
-import * as ContentVersionController from './content-version-controller';
+import { withDependencies as withContentStateDependencies } from './content-state-controller';
+import { withDependencies as withContentVersionDependencies } from './content-version-controller';
 import { CustomObjectController } from './custom-object.controller';
 import { resolveDatasource } from './datasource-resolution.route';
-import CustomError from '../errors/custom.error';
+
+export interface ContentItemState {
+  key: string;
+  businessUnitKey: string;
+  states: Record<string, any>;
+}
+export interface ContentItemVersion {
+  key: string;
+  businessUnitKey: string;
+  versions: Array<ContentItem['value']>;
+}
+
+const ContentStateController = withContentStateDependencies<ContentItemState>({
+  CONTENT_CONTAINER: CONTENT_ITEM_CONTAINER,
+  CONTENT_STATE_CONTAINER: CONTENT_ITEM_STATE_CONTAINER,
+});
+
+const ContentVersionController =
+  withContentVersionDependencies<ContentItemVersion>({
+    CONTENT_VERSION_CONTAINER: CONTENT_ITEM_VERSION_CONTAINER,
+    MAX_VERSIONS: MAX_VERSIONS,
+  });
 
 // Define types for our objects
 export interface ContentItem {
@@ -56,7 +84,7 @@ export interface Datasource {
   [key: string]: any;
 }
 
-const resolveContentItemDatasource = async (
+export const resolveContentItemDatasource = async (
   contentItem: ContentItem['value']
 ): Promise<ContentItem['value']> => {
   const contentTypeController = new CustomObjectController(
@@ -187,7 +215,7 @@ export const getContentItems = async (
   return contentItemsWithStates;
 };
 
-export const getContentItemWithStates = async (
+export const getPreviewContentItem = async (
   businessUnitKey: string,
   key: string
 ): Promise<ContentItem['value']> => {
@@ -196,18 +224,15 @@ export const getContentItemWithStates = async (
   );
   const contentItem = await contentItemController.getCustomObject(key);
   const item = contentItem.value;
-  const contentStates =
-    await ContentStateController.getContentStatesWithWhereClause(
-      `key = "${key}" AND businessUnitKey = "${businessUnitKey}"`
-    );
-  if (contentStates.length > 0) {
-    if (contentStates[0].states.draft) {
-      return resolveContentItemDatasource(contentStates[0].states.draft);
-    } else if (contentStates[0].states.published) {
-      return resolveContentItemDatasource(contentStates[0].states.published);
-    }
+  const contentState = await getContentItemWithStateKey(businessUnitKey, key, [
+    'draft',
+    'published',
+  ]);
+  if (contentState) {
+    return resolveContentItemDatasource(contentState);
   }
 
+  // fallback to the original content item
   return resolveContentItemDatasource(item);
 };
 
@@ -215,53 +240,29 @@ export const getPublishedContentItem = async (
   businessUnitKey: string,
   key: string
 ): Promise<ContentItem['value'] | undefined> => {
-  const contentStates =
-    await ContentStateController.getContentStatesWithWhereClause(
-      `key = "${key}" AND businessUnitKey = "${businessUnitKey}"`
-    );
+  return getContentItemWithStateKey(businessUnitKey, key, 'published');
+};
 
-  if (contentStates.length > 0) {
-    if (contentStates[0].states.published) {
-      return resolveContentItemDatasource(contentStates[0].states.published);
-    }
+export const getContentItemWithStateKey = async (
+  businessUnitKey: string,
+  key: string,
+  state: string | string[]
+): Promise<ContentItem['value'] | undefined> => {
+  const contentState = await ContentStateController.getFirstContentWithState<
+    ContentItem['value']
+  >(`key = "${key}" AND businessUnitKey = "${businessUnitKey}"`, state);
+
+  if (contentState) {
+    return resolveContentItemDatasource(contentState);
   }
 
   return undefined;
 };
 
-export const queryPublishedContentItem = async (
-  businessUnitKey: string,
-  query: string
-): Promise<ContentItem['value'] | undefined> => {
-  const contentItemController = new CustomObjectController(
-    CONTENT_ITEM_CONTAINER
-  );
-
-  const contentItems = await contentItemController.getCustomObjects(
-    `value(${query} AND businessUnitKey = "${businessUnitKey}")`
-  );
-
-  if (contentItems.length === 0) {
-    return undefined;
-  }
-
-  const contentStates =
-    await ContentStateController.getContentStatesWithWhereClause(
-      `key = "${contentItems[0].key}" AND businessUnitKey = "${businessUnitKey}"`
-    );
-
-  if (contentStates.length > 0) {
-    if (contentStates[0].states.published) {
-      return resolveContentItemDatasource(contentStates[0].states.published);
-    }
-  }
-
-  return resolveContentItemDatasource(contentItems[0].value);
-};
-
 export const queryContentItem = async (
   businessUnitKey: string,
-  query: string
+  query: string,
+  state: string | string[]
 ): Promise<ContentItem['value'] | undefined> => {
   const contentItemController = new CustomObjectController(
     CONTENT_ITEM_CONTAINER
@@ -275,18 +276,20 @@ export const queryContentItem = async (
     return undefined;
   }
 
-  const contentStates =
-    await ContentStateController.getContentStatesWithWhereClause(
-      `key = "${contentItems[0].key}" AND businessUnitKey = "${businessUnitKey}"`
-    );
+  const contentState = await ContentStateController.getFirstContentWithState<
+    ContentItem['value']
+  >(
+    `key = "${contentItems[0].key}" AND businessUnitKey = "${businessUnitKey}"`,
+    state
+  );
 
-  if (contentStates.length > 0) {
-    if (contentStates[0].states.draft) {
-      return resolveContentItemDatasource(contentStates[0].states.draft);
+  if (contentState) {
+    if (contentState) {
+      return resolveContentItemDatasource(contentState);
     }
   }
 
-  return resolveContentItemDatasource(contentItems[0].value);
+  return undefined;
 };
 
 /**

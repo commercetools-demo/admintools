@@ -6,6 +6,7 @@ import { assertError, assertString } from '../utils/assert.utils';
 import {
   createDefaultDatasources,
   createServiceURLStorageLink,
+  createDefaultContentTypes,
 } from './actions';
 
 const CONNECT_APPLICATION_URL_KEY = 'CONNECT_SERVICE_URL';
@@ -18,6 +19,7 @@ async function postDeploy(properties: Map<string, unknown>): Promise<void> {
   const apiRoot = createApiRoot();
   await createServiceURLStorageLink(apiRoot, applicationUrl);
   await createDefaultDatasources(apiRoot);
+  await createDefaultContentTypes(apiRoot);
 }
 
 async function run(): Promise<void> {

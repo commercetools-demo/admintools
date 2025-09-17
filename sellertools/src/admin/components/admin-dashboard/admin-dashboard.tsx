@@ -18,7 +18,7 @@ const AdminDashboard = () => {
   const isDevelopment = process.env.NODE_ENV === 'development';
   const { checkHealth: checkHealthCms } = useExternalUrl({
     storedUrlKey: isDevelopment
-      ? 'http://localhost:8080/cms'
+      ? 'http://localhost:8080/service'
       : CMS_DEPLOYED_URL_KEY,
     healthCheckUrl: `/health`,
     healthCheckHeaders: {},

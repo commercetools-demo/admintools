@@ -29,7 +29,7 @@ const ManageContentools = ({ linkToWelcome }: Props) => {
   const isDevelopment = process.env.NODE_ENV === 'development';
   const { deployedUrl, isLoading, isHealthy } = useExternalUrl({
     storedUrlKey: isDevelopment
-      ? 'http://localhost:8080/cms'
+      ? 'http://localhost:8080/service'
       : CMS_DEPLOYED_URL_KEY,
     healthCheckUrl: `/health`,
     healthCheckHeaders: {},

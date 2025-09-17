@@ -20,3 +20,25 @@ export const DATASOURCE_CONTAINER =
 
 export const SHARED_CONTAINER = 'shared-sellertools-container';
 export const CMS_DEPLOYED_URL_KEY = 'cms-app-deployed-url';
+
+export const PAGE_VERSION_CONTAINER =
+  process.env.PAGE_VERSION_CONTAINER || 'page-version';
+
+export const PAGE_STATE_CONTAINER =
+  process.env.PAGE_STATE_CONTAINER || 'page-state';
+
+export const CONTENT_PAGE_CONTAINER =
+  process.env.CONTENT_PAGE_CONTAINER || 'content-page';
+
+export const PAGE_CONTENT_ITEMS_CONTAINER =
+  process.env.PAGE_CONTENT_ITEMS_CONTAINER || 'page-content-items';
+export const PAGE_CONTENT_ITEM_STATE_CONTAINER =
+  process.env.PAGE_CONTENT_ITEM_STATE_CONTAINER || 'page-content-item-state';
+export const PAGE_CONTENT_ITEM_VERSION_CONTAINER =
+  process.env.PAGE_CONTENT_ITEM_VERSION_CONTAINER ||
+  'page-content-item-version';
+
+export const NUMBER_OF_COLUMNS = parseInt(
+  process.env.NUMBER_OF_COLUMNS || '12',
+  10
+);

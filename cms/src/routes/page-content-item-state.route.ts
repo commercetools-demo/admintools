@@ -6,34 +6,30 @@ import {
   RequestHandler,
 } from 'express';
 import { logger } from '../utils/logger.utils';
-import {
-  StateControllerDependencies,
-  withDependencies,
-} from '../controllers/content-state-controller';
-import CustomError from '../errors/custom.error';
-import {
-  CONTENT_ITEM_CONTAINER,
-  CONTENT_ITEM_STATE_CONTAINER,
-} from '../constants';
-import { ContentItemState } from '../controllers/content-item.controller';
+import { withDependencies as withContentStateDependencies } from '../controllers/content-state-controller';
 
-const contentItemStateRouter = Router();
-const dependencies: StateControllerDependencies = {
-  CONTENT_CONTAINER: CONTENT_ITEM_CONTAINER,
-  CONTENT_STATE_CONTAINER: CONTENT_ITEM_STATE_CONTAINER,
-};
-const ContentStateController = withDependencies<ContentItemState>(dependencies);
+import CustomError from '../errors/custom.error';
+
+import { ContentItemState } from '../controllers/content-item.controller';
+import { PAGE_CONTENT_ITEM_STATE_CONTAINER, PAGE_CONTENT_ITEMS_CONTAINER } from '../constants';
+
+const pageContentItemStateRouter = Router();
+const PageContentItemStateController =
+  withContentStateDependencies<ContentItemState>({
+    CONTENT_CONTAINER: PAGE_CONTENT_ITEMS_CONTAINER,
+    CONTENT_STATE_CONTAINER: PAGE_CONTENT_ITEM_STATE_CONTAINER,
+  });
 
 // Get states for a content item
-contentItemStateRouter.get(
-  '/:businessUnitKey/content-items/:key/states',
+pageContentItemStateRouter.get(
+  '/:businessUnitKey/page-items/:key/states',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { businessUnitKey, key } = req.params;
       const stateKey = `${businessUnitKey}_${key}`;
 
       try {
-        const object = await ContentStateController.getState(stateKey);
+        const object = await PageContentItemStateController.getState(stateKey);
         res.json(object);
       } catch (error) {
         // If not found, return empty states object
@@ -55,15 +51,15 @@ contentItemStateRouter.get(
 );
 
 // Publish state (move draft to published)
-contentItemStateRouter.put(
-  '/:businessUnitKey/content-items/:key/states/published',
+pageContentItemStateRouter.put(
+  '/:businessUnitKey/page-items/:key/states/published',
   (async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { clearDraft } = req.query;
       const { businessUnitKey, key } = req.params;
       const { value } = req.body;
 
-      const state = await ContentStateController.createPublishedState(
+      const state = await PageContentItemStateController.createPublishedState(
         businessUnitKey,
         key,
         value,
@@ -78,13 +74,13 @@ contentItemStateRouter.put(
 );
 
 // Delete draft state (revert to published)
-contentItemStateRouter.delete(
-  '/:businessUnitKey/content-items/:key/states/draft',
+pageContentItemStateRouter.delete(
+  '/:businessUnitKey/page-items/:key/states/draft',
   (async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { businessUnitKey, key } = req.params;
 
-      const state = await ContentStateController.deleteDraftState(
+      const state = await PageContentItemStateController.deleteDraftState(
         businessUnitKey,
         key
       );
@@ -96,4 +92,4 @@ contentItemStateRouter.delete(
   }) as RequestHandler
 );
 
-export default contentItemStateRouter;
+export default pageContentItemStateRouter;
