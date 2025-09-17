@@ -61,4 +61,12 @@ export default defineMessages({
     id: 'SellerDashboard.storeSelector',
     defaultMessage: 'Store:',
   },
+  manageContentItems: {
+    id: 'SellerDashboard.manageContentItems',
+    defaultMessage: 'Manage Content Items',
+  },
+  manageContentPages: {
+    id: 'SellerDashboard.manageContentPages',
+    defaultMessage: 'Manage Content Pages',
+  },
 });

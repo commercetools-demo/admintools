@@ -5,18 +5,17 @@ import Text from '@commercetools-uikit/text';
 import { CMS_DEPLOYED_URL_KEY } from '../../../constants';
 import { useAuthContext } from '../../contexts/auth-context';
 import { useExternalUrl } from '../../hooks/use-external-url';
-import ContentItem from '@commercetools-demo/contentools-content-items';
+import ContentPage from '@commercetools-demo/contentools-content-pages';
 import { useApplicationContext } from '@commercetools-frontend/application-shell-connectors';
 import { useRouteMatch } from 'react-router-dom';
 import styled from 'styled-components';
 
 const StyledHeader = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: var(--spacing-l);
   padding-bottom: var(--spacing-m);
-  border-bottom: 1px solid var(--color-neutral-60);
 `;
 
 type Props = {
@@ -24,7 +23,7 @@ type Props = {
   linkToWelcome: string;
 };
 
-const Content = ({ onBack }: Props) => {
+const ContentPages = ({ onBack }: Props) => {
   const match = useRouteMatch();
 
   const { storeKey } = useAuthContext();
@@ -32,7 +31,7 @@ const Content = ({ onBack }: Props) => {
   const isDevelopment = process.env.NODE_ENV === 'development';
   const { deployedUrl, isLoading, isHealthy } = useExternalUrl({
     storedUrlKey: isDevelopment
-      ? 'http://localhost:8080/cms'
+      ? 'http://localhost:8080/service'
       : CMS_DEPLOYED_URL_KEY,
     healthCheckUrl: `/health`,
     healthCheckHeaders: {},
@@ -53,18 +52,10 @@ const Content = ({ onBack }: Props) => {
   return (
     <Spacings.Stack scale="l">
       <StyledHeader>
-        <div>
-          <Text.Headline as="h1">Contentools</Text.Headline>
-          <Text.Subheadline>
-            Store: <span>{storeKey}</span>
-          </Text.Subheadline>
-        </div>
-        <Spacings.Inline scale="s">
           <PrimaryButton label="Back to Dashboard" onClick={onBack} />
-        </Spacings.Inline>
       </StyledHeader>
       {storeKey && (
-        <ContentItem
+        <ContentPage
           baseURL={deployedUrl}
           businessUnitKey={storeKey}
           locale={dataLocale ?? 'en-US'}
@@ -75,4 +66,4 @@ const Content = ({ onBack }: Props) => {
   );
 };
 
-export default Content;
+export default ContentPages;

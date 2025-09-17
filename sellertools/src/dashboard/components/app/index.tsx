@@ -6,7 +6,8 @@ import { useAuthContext } from '../../contexts/auth-context';
 import { useBusinessUnitContext } from '../../contexts/business-unit-context';
 import AIAssistantWrapper from '../ai-assistant/ai-assistant-wrapper';
 import Configuration from '../configuration';
-import Content from '../content/index';
+import ContentItems from '../content/content-items';
+import ContentPages from '../content/content-pages';
 import CustomerDetailsModal from '../customers/customer-details-modal';
 import Customers from '../customers/customers';
 import OrderDetailsModal from '../orders/order-details-modal';
@@ -80,8 +81,11 @@ const App = () => {
             isEditing={true}
           />
         </Route>
-        <Route path={`${match.path}/content`} exact>
-          <Content onBack={goBack} linkToWelcome={match.url} />
+        <Route path={`${match.path}/content-items`} exact>
+          <ContentItems onBack={goBack} linkToWelcome={match.url} />
+        </Route>
+        <Route path={`${match.path}/content-pages`} exact>
+          <ContentPages onBack={goBack} linkToWelcome={match.url} />
         </Route>
         <Route path={`${match.path}/reports`} exact>
           <Reports onBack={goBack} linkToWelcome={match.url} />

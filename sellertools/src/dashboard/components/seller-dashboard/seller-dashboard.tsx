@@ -4,6 +4,7 @@ import {
   FrontendStudioIcon,
   GearIcon,
   GraphIcon,
+  GridIcon,
   ListWithSearchIcon,
   TagIcon,
   UsersIcon,
@@ -115,10 +116,17 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
       onClick: () => handleNavigate('/promotions'),
     },
     {
-      id: 'content',
-      title: intl.formatMessage(messages.manageContent),
+      id: 'content-items',
+      title: intl.formatMessage(messages.manageContentItems),
       icon: <FrontendStudioIcon size="big" color="surface" />,
-      onClick: () => handleNavigate('/content'),
+      onClick: () => handleNavigate('/content-items'),
+      checkVisibility: checkHealthCms,
+    },
+    {
+      id: 'content-pages',
+      title: intl.formatMessage(messages.manageContentPages),
+      icon: <GridIcon size="big" color="surface" />,
+      onClick: () => handleNavigate('/content-pages'),
       checkVisibility: checkHealthCms,
     },
     {
